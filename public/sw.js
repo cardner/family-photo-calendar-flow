@@ -1,108 +1,50 @@
 // Increment CACHE_NAME when making breaking cache changes
-const CACHE_NAME = 'family-photo-calendar-v3';
-// Base path support for GitHub Pages; defaults to '/'
-const BASE = self.registration.scope.replace(self.location.origin, '') || '/';
-const PRECACHE_URLS = [
-  BASE,
-  BASE + 'manifest.json',
-  BASE + 'version.json'
-];
+const CACHE_VERSION = 'fp-calendar-v3';
+const CACHE_NAME = `${CACHE_VERSION}`;
 
-// External API domains that should bypass the service worker
-const EXTERNAL_API_DOMAINS = [
-  'api.codetabs.com',
-  'cors-anywhere.herokuapp.com',
-  'thingproxy.freeboard.io',
-  'cors.bridged.cc',
-  'api.github.com'
-];
-
-// Check if a URL should bypass the service worker
-function shouldBypassServiceWorker(url) {
-  try {
-    const urlObj = new URL(url);
-    return EXTERNAL_API_DOMAINS.some(domain => 
-      urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain)
-    );
-  } catch (error) {
-    return false;
-  }
-}
-
-// Install event - cache resources with error handling
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return Promise.allSettled(
-          PRECACHE_URLS.map(url => 
-            cache.add(url).catch(err => {
-              console.warn(`Failed to cache ${url}:`, err);
-              return null;
-            })
-          )
-        );
-      })
-      .then(() => self.skipWaiting())
-      .catch(err => {
-        console.error('Cache installation failed:', err);
-      })
-  );
+  self.skipWaiting();
 });
 
-// Fetch event - serve from cache when offline, but bypass external APIs
+self.addEventListener('activate', (event) => {
+  event.waitUntil(clients.claim());
+});
+
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests and chrome-extension requests
-  if (event.request.method !== 'GET' || event.request.url.startsWith('chrome-extension://')) {
+  const { request } = event;
+  if (request.method !== 'GET') {
     return;
   }
 
-  // Let external API calls bypass the service worker completely
-  if (shouldBypassServiceWorker(event.request.url)) {
-    console.log('Bypassing service worker for external API:', event.request.url);
-    return; // Don't intercept, let the request go through normally
-  }
-
-  const req = event.request;
-  const url = new URL(req.url);
-
-  // Network-first for HTML and version.json to avoid stale app shells and version info
-  const isHtml = req.headers.get('accept')?.includes('text/html');
-  const isVersionJson = url.origin === self.location.origin && url.pathname.endsWith('/version.json');
-
-  if (isHtml || isVersionJson) {
-    event.respondWith(
-      fetch(req)
-        .then((networkResp) => {
-          const respClone = networkResp.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, respClone)).catch(() => {});
-          return networkResp;
-        })
-        .catch(() => caches.match(req).then(resp => resp || new Response('Offline', { status: 200, headers: { 'Content-Type': 'text/plain' } })))
-    );
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) {
+    // Do not touch cross-origin requests such as the Notion API.
     return;
   }
 
-  // Stale-while-revalidate for same-origin static assets
-  if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(req).then(cached => {
-        const fetchPromise = fetch(req)
-          .then(networkResp => {
-            const respClone = networkResp.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(req, respClone)).catch(() => {});
-            return networkResp;
-          })
-          .catch(() => cached || Promise.reject('Network error'));
-        return cached || fetchPromise;
-      })
-    );
-    return;
-  }
-
-  // Default: try network then cache
   event.respondWith(
-    fetch(req).catch(() => caches.match(req))
+    caches.match(request).then((cached) => {
+      if (cached) {
+        return cached;
+      }
+
+      return fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch((error) => {
+          console.error('[SW] fetch failed:', request.url, error);
+          return new Response('Offline', {
+            status: 503,
+            statusText: 'Service Unavailable',
+          });
+        });
+    }).catch((error) => {
+      console.error('[SW] handler error:', request.url, error);
+      return new Response('Service Worker Error', { status: 500 });
+    })
   );
 });
 
@@ -327,30 +269,6 @@ async function syncSingleCalendar(calendar) {
     };
   });
 }
-
-// Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  const currentCaches = [CACHE_NAME];
-  
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (!currentCaches.includes(cacheName)) {
-              console.log('Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .catch(err => {
-        console.error('Cache cleanup failed:', err);
-    })
-  );
-  // Take control of uncontrolled clients immediately
-  self.clients.claim();
-});
 
 // Handle messages from the main thread
 self.addEventListener('message', (event) => {
