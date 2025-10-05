@@ -11,6 +11,6 @@ declare module "https://deno.land/std@0.190.0/http/server.ts" {
 
 declare module 'https://esm.sh/@supabase/supabase-js@2' {
   // Generic createClient stub; refine types if project later consumes edge function code.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Stub type for edge function compatibility
   export function createClient<DB = unknown>(url: string, key: string): any;
 }

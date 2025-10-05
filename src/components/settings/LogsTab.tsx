@@ -15,6 +15,8 @@ type LogItem = {
     sourceColor?: string;
     // Add stored response snippet for accordion content
     response?: string;
+    // Add back optional count to match usage in logging
+    count?: number;
 };
 
 type LogState = {
@@ -43,10 +45,13 @@ function tieredGetItem(key: string): string | null {
       null;
     if (s?.getItem) return s.getItem(key);
     if (s?.get) return s.get(key);
-  } catch {}
+  } catch (err) {
+    console.warn('[tieredGetItem] Failed to read from tiered storage:', err);
+  }
   try {
     return window.localStorage.getItem(key);
-  } catch {
+  } catch (err) {
+    console.warn('[tieredGetItem] Failed to read from localStorage:', err);
     return null;
   }
 }
@@ -61,10 +66,14 @@ function tieredSetItem(key: string, value: string) {
       null;
     if (s?.setItem) return void s.setItem(key, value);
     if (s?.set) return void s.set(key, value);
-  } catch {}
+  } catch (err) {
+    console.warn('[tieredSetItem] Failed to write to tiered storage:', err);
+  }
   try {
     window.localStorage.setItem(key, value);
-  } catch {}
+  } catch (err) {
+    console.warn('[tieredSetItem] Failed to write to localStorage:', err);
+  }
 }
 function tieredRemoveItem(key: string) {
   if (typeof window === 'undefined') return;
@@ -77,10 +86,14 @@ function tieredRemoveItem(key: string) {
       null;
     if (s?.removeItem) return void s.removeItem(key);
     if (s?.remove) return void s.remove(key);
-  } catch {}
+  } catch (err) {
+    console.warn('[tieredRemoveItem] Failed to remove from tiered storage:', err);
+  }
   try {
     window.localStorage.removeItem(key);
-  } catch {}
+  } catch (err) {
+    console.warn('[tieredRemoveItem] Failed to remove from localStorage:', err);
+  }
 }
 
 function pruneOld(entries: LogItem[]): LogItem[] {
@@ -96,7 +109,8 @@ function loadPersistedEntries(): LogItem[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as LogItem[];
     return pruneOld(parsed).slice(-MAX_ENTRIES);
-  } catch {
+  } catch (err) {
+    console.error('[loadPersistedEntries] Failed to load logs:', err);
     return [];
   }
 }
@@ -115,33 +129,32 @@ function persistEntries(entries: LogItem[]) {
             : e.response,
       }));
     tieredSetItem(LOGS_STORAGE_KEY, JSON.stringify(pruned));
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error('[persistEntries] Failed to persist logs:', err);
   }
 }
 
 // Throttled persistence to avoid frequent large writes
 let __persistTimer: number | null = null;
 let __pendingEntries: LogItem[] | null = null;
-function schedulePersist(entries: LogItem[]) {
+function schedulePersist(entries: LogItem[]): void {
   __pendingEntries = entries;
   if (typeof window === 'undefined') return;
   if (__persistTimer != null) return;
-  const flush = () => {
+  const flush = (): void => {
     const toWrite = __pendingEntries;
     __pendingEntries = null;
     __persistTimer = null;
     if (toWrite) persistEntries(toWrite);
   };
-  if ('requestIdleCallback' in window) {
-    // @ts-ignore - requestIdleCallback may not be typed
-    __persistTimer = window.requestIdleCallback(flush, { timeout: 2500 }) as unknown as number;
+  if (window.requestIdleCallback) {
+    __persistTimer = window.requestIdleCallback(flush, { timeout: 2500 });
   } else {
     __persistTimer = window.setTimeout(flush, 2500);
   }
 }
 
-export const useLogStore = create<LogState>((set, get) => ({
+export const useLogStore = create<LogState>((set) => ({
     entries: typeof window === 'undefined' ? [] : loadPersistedEntries(),
     addEntry: (entry) =>
         set((state) => {
@@ -162,6 +175,16 @@ declare global {
   interface Window {
     __fp_networkLogPatched?: boolean;
     __fp_logStorageListener?: boolean;
+    __fp_scheduleDiagnostics?: {
+      getTimes: () => number[];
+      getIntervals: () => number[];
+      getExpectedMinutes: () => number;
+      setExpectedMinutes: (m: number) => void;
+    };
+    __fp_scheduleTest?: {
+      waitForFetchSamples: (count: number, timeoutMs?: number) => Promise<number[]>;
+      assertFrequency: (expectedMinutes: number, options?: { toleranceMinutes?: number; samples?: number; timeoutMs?: number }) => Promise<{ ok: true; avgMinutes: number; intervalsMs: number[] }>;
+    };
   }
 }
 if (typeof window !== 'undefined' && !window.__fp_logStorageListener) {
@@ -169,7 +192,7 @@ if (typeof window !== 'undefined' && !window.__fp_logStorageListener) {
   window.addEventListener('storage', (e) => {
     if (e.key === LOGS_STORAGE_KEY) {
       const next = loadPersistedEntries();
-      (useLogStore as any).setState?.({ entries: next });
+      useLogStore.setState({ entries: next });
     }
   });
 }
@@ -191,37 +214,42 @@ function categorize(url: string): 'calendar' | 'notion' | 'other' {
 }
 
 // Cache for resolving source name/color to avoid repeated storage reads
-type MetaCache = { exp: number; calendars?: any[]; notion?: any[] };
+type MetaCache = { exp: number; calendars?: unknown[]; notion?: unknown[] };
 let __metaCache: MetaCache = { exp: 0 };
 function getMetaSnapshot(): MetaCache {
   const now = Date.now();
   if (now < __metaCache.exp && (__metaCache.calendars || __metaCache.notion)) return __metaCache;
 
-  const tryKeys = (keys: string[]): any => {
+  const tryKeys = (keys: string[]): unknown => {
     for (const k of keys) {
       try {
         const v = tieredGetItem(k);
         if (v) return JSON.parse(v);
-      } catch {}
+      } catch (err) {
+        console.warn(`[tryKeys] Failed to parse key "${k}":`, err);
+      }
     }
     return undefined;
   };
 
   // calendars
-  let calendars: any[] | undefined;
+  let calendars: unknown[] | undefined;
   try {
-    const cal =
-      tryKeys(['fp.calendars', 'settings.calendars', 'calendar.feeds', 'calendars', 'fp.settings.calendars']) || [];
-    calendars = Array.isArray(cal) ? cal : Array.isArray(cal?.feeds) ? cal.feeds : undefined;
-  } catch {}
+    const cal = tryKeys(['fp.calendars', 'settings.calendars', 'calendar.feeds', 'calendars', 'fp.settings.calendars']) || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    calendars = Array.isArray(cal) ? cal : Array.isArray((cal as any)?.feeds) ? (cal as any).feeds : undefined;
+  } catch (err) {
+    console.warn('[getMetaSnapshot] Failed to load calendars:', err);
+  }
   // notion
-  let notion: any[] | undefined;
+  let notion: unknown[] | undefined;
   try {
-    const nd =
-      tryKeys(['fp.notion.databases', 'settings.notion.databases', 'notion.databases', 'notionDatabases', 'fp.settings.notion']) ||
-      [];
-    notion = Array.isArray(nd) ? nd : Array.isArray(nd?.databases) ? nd.databases : Array.isArray(nd?.items) ? nd.items : undefined;
-  } catch {}
+    const nd = tryKeys(['fp.notion.databases', 'settings.notion.databases', 'notion.databases', 'notionDatabases', 'fp.settings.notion']) || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    notion = Array.isArray(nd) ? nd : Array.isArray((nd as any)?.databases) ? (nd as any).databases : Array.isArray((nd as any)?.items) ? (nd as any).items : undefined;
+  } catch (err) {
+    console.warn('[getMetaSnapshot] Failed to load notion databases:', err);
+  }
 
   __metaCache = { exp: now + 60_000, calendars, notion }; // cache for 60s
   return __metaCache;
@@ -233,9 +261,11 @@ function resolveSourceMeta(url: string, tag: 'calendar' | 'notion' | 'other', in
 
   if (tag === 'calendar') {
     const list = snap.calendars || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const match = Array.isArray(list) ? list.find((c: any) => typeof c?.url === 'string' && url.includes(c.url)) : undefined;
     if (match) {
-      return { name: match.name || match.title || match.label, color: match.color || match.colour || match.tint };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return { name: (match as any).name || (match as any).title || (match as any).label, color: (match as any).color || (match as any).colour || (match as any).tint };
     }
     return { color: '#0ea5e9' };
   }
@@ -245,23 +275,29 @@ function resolveSourceMeta(url: string, tag: 'calendar' | 'notion' | 'other', in
     try {
       const m = /\/v1\/databases\/([a-f0-9-]+)\/query/i.exec(url);
       if (m) dbId = m[1];
-    } catch {}
+    } catch (err) {
+      console.warn('[resolveSourceMeta] Failed to parse database ID from URL:', err);
+    }
     if (!dbId && init?.body && typeof init.body === 'string') {
       try {
         const body = JSON.parse(init.body);
-        if (typeof body?.database_id === 'string') dbId = body.database_id;
-      } catch {}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (typeof (body as any)?.database_id === 'string') dbId = (body as any).database_id;
+      } catch (err) {
+        console.warn('[resolveSourceMeta] Failed to parse database ID from body:', err);
+      }
     }
     const list = snap.notion || [];
     if (Array.isArray(list) && dbId) {
-      const canon = (s: string) => s.replace(/-/g, '').toLowerCase();
-      const match = list.find(
-        (d: any) =>
+      const canon = (s: string): string => s.replace(/-/g, '').toLowerCase();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const match = list.find((d: any) =>
           (typeof d?.id === 'string' && canon(d.id) === canon(dbId!)) ||
           (typeof d?.databaseId === 'string' && canon(d.databaseId) === canon(dbId!))
       );
       if (match) {
-        return { name: match.name || match.title || match.label, color: match.color || match.colour || match.tint };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return { name: (match as any).name || (match as any).title || (match as any).label, color: (match as any).color || (match as any).colour || (match as any).tint };
       }
     }
     return { color: '#8b5cf6' };
@@ -277,23 +313,21 @@ function safeAddLog(
   opts?: { message?: string; status?: number; count?: number; response?: string; sourceName?: string; sourceColor?: string }
 ) {
   try {
-    const addEntry = (useLogStore as any)?.getState?.().addEntry;
-    if (typeof addEntry === 'function') {
-      addEntry({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        level,
-        timestamp: new Date().toISOString(),
-        message: opts?.message ?? '',
-        label,
-        status: opts?.status,
-        count: opts?.count,
-        response: opts?.response,
-        sourceName: opts?.sourceName,
-        sourceColor: opts?.sourceColor,
-      });
-    }
-  } catch {
-    // ignore
+    const addEntry = useLogStore.getState().addEntry;
+    addEntry({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      level,
+      timestamp: new Date().toISOString(),
+      message: opts?.message ?? '',
+      label,
+      status: opts?.status,
+      count: opts?.count,
+      response: opts?.response,
+      sourceName: opts?.sourceName,
+      sourceColor: opts?.sourceColor,
+    });
+  } catch (err) {
+    console.error('[safeAddLog] Failed to add log entry:', err);
   }
 }
 
@@ -339,8 +373,8 @@ function getExpectedRefreshMinutes(): number {
       if (!raw) continue;
       const n = Number.isNaN(+raw) ? (JSON.parse(raw)?.minutes ?? JSON.parse(raw)) : +raw;
       if (Number.isFinite(n) && n > 0) return Number(n);
-    } catch {
-      // ignore malformed values
+    } catch (err) {
+      console.warn(`[getExpectedRefreshMinutes] Failed to parse key "${key}":`, err);
     }
   }
   return 15; // default expected cadence (minutes)
@@ -356,15 +390,15 @@ function computeIntervals(times: number[]): number[] {
   return res;
 }
 
-function recordCalendarFetch(ts: number, labelForWarn?: string) {
+function recordCalendarFetch(ts: number, labelForWarn?: string): void {
   __calendarFetchTimes.push(ts);
   if (__calendarFetchTimes.length > 100) __calendarFetchTimes.splice(0, __calendarFetchTimes.length - 100);
 
   // Emit an event tests can listen to
   try {
-    window.dispatchEvent(new CustomEvent('fp:calendar-fetch', { detail: ts } as any));
-  } catch {
-    // ignore
+    window.dispatchEvent(new CustomEvent<number>('fp:calendar-fetch', { detail: ts }));
+  } catch (err) {
+    console.warn('[recordCalendarFetch] Failed to dispatch event:', err);
   }
 
   // Late cadence detection: warn if last interval > 2x expected
@@ -384,26 +418,28 @@ function recordCalendarFetch(ts: number, labelForWarn?: string) {
 }
 
 // Expose diagnostics for tests
-if (typeof window !== 'undefined' && !window.__fp_scheduleDiagnostics) {
-  window.__fp_scheduleDiagnostics = {
-    getTimes: () => __calendarFetchTimes.slice(),
-    getIntervals: () => computeIntervals(__calendarFetchTimes),
-    getExpectedMinutes: () => getExpectedRefreshMinutes(),
-    setExpectedMinutes: (m: number) => {
-      if (Number.isFinite(m) && m > 0) tieredSetItem('fp.calendar.refresh.minutes.override', String(m));
-    },
-  };
-}
+(function initScheduleDiagnostics() {
+  if (typeof window !== 'undefined' && !window.__fp_scheduleDiagnostics) {
+    window.__fp_scheduleDiagnostics = {
+      getTimes: () => __calendarFetchTimes.slice(),
+      getIntervals: () => computeIntervals(__calendarFetchTimes),
+      getExpectedMinutes: () => getExpectedRefreshMinutes(),
+      setExpectedMinutes: (m: number) => {
+        if (Number.isFinite(m) && m > 0) tieredSetItem('fp.calendar.refresh.minutes.override', String(m));
+      },
+    };
+  }
+})();
 
 // Expose lightweight Jest helpers to verify scheduled cadence without importing React
-if (typeof window !== 'undefined' && !window.__fp_scheduleTest) {
-  window.__fp_scheduleTest = {
-    waitForFetchSamples: (count: number, timeoutMs = 30000) =>
+(function initScheduleTest() {
+  if (typeof window !== 'undefined' && !window.__fp_scheduleTest) {
+    const waitForFetchSamplesLocal = (count: number, timeoutMs = 30000): Promise<number[]> =>
       new Promise<number[]>((resolve, reject) => {
         const startLen = __calendarFetchTimes.length;
         if (startLen >= count) return resolve(__calendarFetchTimes.slice(0, count));
         let done = false;
-        const onTick = () => {
+        const onTick = (): void => {
           const len = __calendarFetchTimes.length;
           if (len >= count && !done) {
             done = true;
@@ -411,7 +447,7 @@ if (typeof window !== 'undefined' && !window.__fp_scheduleTest) {
             resolve(__calendarFetchTimes.slice());
           }
         };
-        const onEvent = () => onTick();
+        const onEvent = (): void => onTick();
         const timer = window.setTimeout(() => {
           if (!done) {
             done = true;
@@ -419,40 +455,43 @@ if (typeof window !== 'undefined' && !window.__fp_scheduleTest) {
             reject(new Error(`Timeout waiting for ${count} calendar fetch samples; got ${__calendarFetchTimes.length}`));
           }
         }, timeoutMs);
-        const cleanup = () => {
-          window.removeEventListener('fp:calendar-fetch', onEvent as any);
+        const cleanup = (): void => {
+          window.removeEventListener('fp:calendar-fetch', onEvent);
           window.clearTimeout(timer);
         };
-        window.addEventListener('fp:calendar-fetch', onEvent as any);
-        // also check immediately in case samples arrived between scheduling
+        window.addEventListener('fp:calendar-fetch', onEvent);
         onTick();
-      }),
-    assertFrequency: async (expectedMinutes: number, options?: { toleranceMinutes?: number; samples?: number; timeoutMs?: number }) => {
-      const tol = options?.toleranceMinutes ?? Math.max(0.25, expectedMinutes * 0.25); // default ±25% or 0.25m
-      const samples = Math.max(2, options?.samples ?? 3); // need at least 2 intervals
-      const timeoutMs = options?.timeoutMs ?? Math.max(15000, expectedMinutes * 60000 * 3);
-      await (window.__fp_scheduleTest as any).waitForFetchSamples(samples, timeoutMs);
-      const intervals = computeIntervals(__calendarFetchTimes).slice(-Math.max(1, samples - 1));
-      if (!intervals.length) throw new Error('No intervals to assert on.');
-      const avgMs = Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length);
-      const avgMin = avgMs / 60000;
-      const delta = Math.abs(avgMin - expectedMinutes);
-      if (delta > tol) {
-        throw new Error(`Expected ~${expectedMinutes}m ±${tol}m cadence, got ${avgMin.toFixed(2)}m (intervals: ${intervals.map(i => Math.round(i/1000)).join('s, ')}s)`);
-      }
-      return { ok: true as const, avgMinutes: +avgMin.toFixed(3), intervalsMs: intervals };
-    },
-  };
-}
+      });
+
+    window.__fp_scheduleTest = {
+      waitForFetchSamples: waitForFetchSamplesLocal,
+      assertFrequency: async (expectedMinutes: number, options?: { toleranceMinutes?: number; samples?: number; timeoutMs?: number }): Promise<{ ok: true; avgMinutes: number; intervalsMs: number[] }> => {
+        const tol = options?.toleranceMinutes ?? Math.max(0.25, expectedMinutes * 0.25);
+        const samples = Math.max(2, options?.samples ?? 3);
+        const timeoutMs = options?.timeoutMs ?? Math.max(15000, expectedMinutes * 60000 * 3);
+        await waitForFetchSamplesLocal(samples, timeoutMs);
+        const intervals = computeIntervals(__calendarFetchTimes).slice(-Math.max(1, samples - 1));
+        if (!intervals.length) throw new Error('No intervals to assert on.');
+        const avgMs = Math.round(intervals.reduce((a, b) => a + b, 0) / intervals.length);
+        const avgMin = avgMs / 60000;
+        const delta = Math.abs(avgMin - expectedMinutes);
+        if (delta > tol) {
+          throw new Error(`Expected ~${expectedMinutes}m ±${tol}m cadence, got ${avgMin.toFixed(2)}m (intervals: ${intervals.map(i => Math.round(i/1000)).join('s, ')}s)`);
+        }
+        return { ok: true as const, avgMinutes: +avgMin.toFixed(3), intervalsMs: intervals };
+      },
+    };
+  }
+})();
 
 if (typeof window !== 'undefined' && !window.__fp_networkLogPatched) {
   window.__fp_networkLogPatched = true;
   const originalFetch = window.fetch.bind(window);
 
   // Reduce snippet size to lower memory/serialization overhead
-  const truncate = (str: string, max = 2048) => (str.length > max ? str.slice(0, max) + '…' : str);
+  const truncate = (str: string, max = 2048): string => (str.length > max ? str.slice(0, max) + '…' : str);
 
-  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url =
       typeof input === 'string'
         ? input
@@ -468,7 +507,7 @@ if (typeof window !== 'undefined' && !window.__fp_networkLogPatched) {
 
     // Only log calendar and notion calls to avoid noise and heavy processing
     if (tag === 'other') {
-      return originalFetch(input as any, init);
+      return originalFetch(input, init);
     }
 
     const start = performance.now();
@@ -478,15 +517,16 @@ if (typeof window !== 'undefined' && !window.__fp_networkLogPatched) {
     try {
       const parsed = new URL(url, window.location.origin);
       label += ` ${parsed.pathname}`;
-    } catch {
+    } catch (err) {
+      console.warn('[fetch] Failed to parse URL:', err);
       label += ` ${url}`;
     }
 
     // Resolve source meta (name/color) from settings
-    const meta = resolveSourceMeta(url, tag as any, init);
+    const meta = resolveSourceMeta(url, tag, init);
 
     try {
-      const res = await originalFetch(input as any, init);
+      const res = await originalFetch(input, init);
       const duration = Math.round(performance.now() - start);
 
       // Only safely read small JSON bodies; skip text/ICS and large payloads to prevent freezes.
@@ -500,12 +540,13 @@ if (typeof window !== 'undefined' && !window.__fp_networkLogPatched) {
 
         if (ctype.includes('application/json') && clen !== undefined && clen <= MAX_JSON_BYTES) {
           const clone = res.clone();
-          const json = await clone.json();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const json = await clone.json() as any;
           if (Array.isArray(json)) count = json.length;
           else if (json && typeof json === 'object') {
-            if (Array.isArray((json as any).results)) count = (json as any).results.length;
-            else if (Array.isArray((json as any).items)) count = (json as any).items.length;
-            else if (Array.isArray((json as any).data)) count = (json as any).data.length;
+            if (Array.isArray(json.results)) count = json.results.length;
+            else if (Array.isArray(json.items)) count = json.items.length;
+            else if (Array.isArray(json.data)) count = json.data.length;
           }
           responseSnippet = truncate(JSON.stringify(json, null, 2));
         } else if (ctype.includes('application/json') && clen === undefined) {
@@ -515,8 +556,8 @@ if (typeof window !== 'undefined' && !window.__fp_networkLogPatched) {
           // Skip non-JSON bodies entirely (e.g., ICS or binary) to avoid large reads
           responseSnippet = undefined;
         }
-      } catch {
-        // ignore body parse errors
+      } catch (err) {
+        console.warn('[fetch] Failed to parse response body:', err);
       }
 
       const level: LogLevel = res.ok ? 'info' : 'warn';
@@ -536,11 +577,12 @@ if (typeof window !== 'undefined' && !window.__fp_networkLogPatched) {
       }
 
       return res;
-    } catch (err: any) {
+    } catch (err) {
       const duration = Math.round(performance.now() - start);
+      const error = err as Error;
       safeAddLog('error', label, {
-        message: `error in ${duration}ms: ${err?.message || String(err)}`,
-        response: String(err?.stack || err?.message || err),
+        message: `error in ${duration}ms: ${error?.message || String(err)}`,
+        response: String((error as Error & { stack?: string })?.stack || error?.message || err),
         sourceName: meta.name,
         sourceColor: meta.color,
       });
@@ -568,14 +610,18 @@ function formatLocalTs(iso: string) {
   return `${hh}:${mm} ${ampm} ${dd}-${mon}-${yyyy}`;
 }
 
-const LogsTab = () => {
-  const logs = useLogStore((state: any) => state.entries ?? []);
+const LogsTab = (): JSX.Element => {
+  const logs = useLogStore((state: LogState) => state.entries);
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
 
   const toggle = useCallback((id: string) => {
     setOpenIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   }, []);
@@ -615,7 +661,7 @@ const LogsTab = () => {
         .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, MAX_RENDER);
 
-      return ordered.map((entry: any) => {
+      return ordered.map((entry: LogItem) => {
         const isOpen = openIds.has(entry.id);
         const color =
           entry.sourceColor ||
