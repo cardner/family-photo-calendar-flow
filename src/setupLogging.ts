@@ -1,4 +1,4 @@
-/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
+/* eslint-disable no-console, @typescript-eslint/no-explicit-any -- Intentional console suppression for production and window extensions for debugging */
 // Global suppression of non-error console output (always active)
 // Replaces console.log/info/debug with no-ops while preserving warn/error.
 // Original methods stored for optional manual debugging from dev tools:

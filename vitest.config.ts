@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [
     // Type mismatch between vitest's bundled vite types and project vite types
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Required type assertion for plugin compatibility
     react() as any
   ],
   test: {

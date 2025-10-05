@@ -31,7 +31,7 @@ export class NotionAPIClient {
   // Determine runtime environment capabilities
   private get useDevProxy(): boolean {
     // In Vite dev we expose a local proxy at /notion -> https://api.notion.com/v1
-    return typeof window !== 'undefined' && !!(import.meta as any).env?.DEV;
+    return typeof window !== 'undefined' && !!import.meta.env?.DEV;
   }
 
   private resolveUrl(endpoint: string): string {

@@ -1,8 +1,12 @@
-
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/theme/ThemeContext';
 import { getVersionInfo } from '@/utils/versionManager';
 import { VersionInfo } from '@/types/ical';
+
+const SETTINGS_TABS = [
+  // ...existing code...
+  'logs',
+] as const;
 
 export const useSettingsModal = () => {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);

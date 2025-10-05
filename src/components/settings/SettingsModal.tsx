@@ -27,14 +27,14 @@ import { RefreshCw, X } from 'lucide-react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useSettings } from '@/contexts/settings/SettingsContext';
 import { useSettingsModal } from '@/hooks/useSettingsModal';
-import SettingsModalHeader from './settings/SettingsModalHeader';
-import SettingsTabNavigation from './settings/SettingsTabNavigation';
-import SecurityTab from './settings/SecurityTab';
-import PhotosTab from './settings/PhotosTab';
-import DisplayTab from './settings/DisplayTab';
-import WeatherTab from './settings/WeatherTab';
-import CalendarsTab from './settings/CalendarsTab';
-import LogsTab from './settings/LogsTab';
+import SettingsModalHeader from './SettingsModalHeader';
+import SettingsTabNavigation from './SettingsTabNavigation';
+import SecurityTab from './SecurityTab';
+import PhotosTab from './PhotosTab';
+import DisplayTab from './DisplayTab';
+import WeatherTab from './WeatherTab';
+import CalendarsTab from './CalendarsTab';
+import LogsTab from './LogsTab';
 
 interface SettingsModalProps {
   /** Controls modal visibility */

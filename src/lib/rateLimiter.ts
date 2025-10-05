@@ -47,7 +47,7 @@ export class RateLimiter {
  * Debouncer helper returning a function that schedules execution after delay.
  * Subsequent calls reset the timer.
  */
-export function createDebounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+export function createDebounce<T extends (...args: unknown[]) => void>(fn: T, delay: number) {
   let timer: number | undefined;
   return (...args: Parameters<T>) => {
     if (timer) window.clearTimeout(timer);

@@ -14,6 +14,7 @@
     "build:dev": "vite build --mode development",
     "build:pages": "vite build --base=/family-photo-calendar-flow/",
     "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
     "test": "vitest run --reporter=dot",
     "preview": "vite preview"
   },
@@ -82,7 +83,8 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
     "vitest": "^3.2.4",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",

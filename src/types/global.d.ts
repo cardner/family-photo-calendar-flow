@@ -3,3 +3,15 @@
 interface Navigator {
   standalone?: boolean;
 }
+
+declare global {
+  interface Window {
+    __originalConsole?: {
+      log: typeof console.log;
+      info: typeof console.info;
+      debug: typeof console.debug;
+    };
+    enableDebugLogs?: () => void;
+    disableDebugLogs?: () => void;
+  }
+}
