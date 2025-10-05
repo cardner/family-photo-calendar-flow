@@ -106,7 +106,6 @@ Privacy-first family calendar + rotating photo display with offline support, enc
    cd family-calendar
    ```
 
-
 2. **Install dependencies**
 
 ```bash

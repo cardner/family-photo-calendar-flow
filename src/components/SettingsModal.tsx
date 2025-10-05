@@ -1,4 +1,3 @@
-
 /**
  * SettingsModal Component
  * 
@@ -21,7 +20,7 @@
  * - GitHub repository configuration for release checking
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, X } from 'lucide-react';
@@ -35,6 +34,7 @@ import PhotosTab from './settings/PhotosTab';
 import DisplayTab from './settings/DisplayTab';
 import WeatherTab from './settings/WeatherTab';
 import CalendarsTab from './settings/CalendarsTab';
+import LogsTab from './settings/LogsTab';
 
 interface SettingsModalProps {
   /** Controls modal visibility */
@@ -70,6 +70,46 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
   const handleRefreshApp = useCallback(() => {
     window.location.reload();
   }, []);
+
+  // Scope to target log timestamps only
+  const logsScopeRef = useRef<HTMLDivElement | null>(null);
+
+  // hh:mm:ss AM/PM dd-mm-yyyy
+  const formatTsWithSeconds = (iso: string) => {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const h24 = d.getHours();
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    const h12 = h24 % 12 || 12;
+    const hh = pad(h12);
+    const mm = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+    const dd = pad(d.getDate());
+    const mon = pad(d.getMonth() + 1);
+    const yyyy = d.getFullYear();
+    return `${hh}:${mm}:${ss} ${ampm} ${dd}-${mon}-${yyyy}`;
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const scope = logsScopeRef.current;
+    if (!scope) return;
+
+    const update = () => {
+      const times = scope.querySelectorAll('time[dateTime]');
+      times.forEach((el) => {
+        const dt = el.getAttribute('dateTime');
+        if (!dt) return;
+        (el as HTMLElement).textContent = formatTsWithSeconds(dt);
+      });
+    };
+
+    // Initial pass and observe for changes
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(scope, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,6 +151,13 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
               {/* Security settings content */}
               <TabsContent value="security" className="space-y-4 mt-0">
                 <SecurityTab />
+              </TabsContent>
+
+              {/* Logs content */}
+              <TabsContent value="logs" className="focus-visible:outline-none">
+                <div ref={logsScopeRef} data-logs-scope>
+                  <LogsTab />
+                </div>
               </TabsContent>
             </div>
           </Tabs>
