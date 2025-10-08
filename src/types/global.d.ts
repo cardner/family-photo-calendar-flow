@@ -2,6 +2,15 @@
 // Adds non-standard iOS Safari PWA property so we can feature-detect without any casts
 interface Navigator {
   standalone?: boolean;
+  wakeLock?: {
+    request(type: 'screen'): Promise<{
+      readonly released: boolean;
+      readonly type: 'screen';
+      release(): Promise<void>;
+      addEventListener(type: 'release', listener: () => void): void;
+      removeEventListener(type: 'release', listener: () => void): void;
+    }>;
+  };
 }
 
 declare global {

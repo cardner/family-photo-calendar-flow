@@ -12,6 +12,7 @@ import { settingsStorageService } from '@/services/settingsStorageService';
 interface LoadedSettings {
   theme?: 'light' | 'dark' | 'system' | null;
   defaultView?: 'month' | 'week' | 'timeline' | null;
+  keepScreenAwake?: string | null;
   backgroundDuration?: string | null;
   selectedAlbum?: string | null;
   coordinates?: string | null;

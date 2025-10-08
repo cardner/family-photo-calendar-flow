@@ -17,6 +17,7 @@ export const SettingsProvider = ({ children }: { children: React.ReactNode }) =>
   useSettingsInitialization({
     setTheme: displaySettings.setTheme,
     setDefaultView: displaySettings.setDefaultView,
+    setKeepScreenAwake: displaySettings.setKeepScreenAwake,
     setCoordinates: weatherSettings.setCoordinates,
     setUseManualLocation: weatherSettings.setUseManualLocation,
     setPublicAlbumUrl: photoSettings.setPublicAlbumUrl,

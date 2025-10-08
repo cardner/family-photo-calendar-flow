@@ -12,6 +12,7 @@ import { isTestEnv } from '@/utils/env';
 interface InitializationProps {
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   setDefaultView: (view: 'month' | 'week' | 'timeline') => void;
+  setKeepScreenAwake: (enabled: boolean) => void;
   setCoordinates: (coordinates: string) => void;
   setUseManualLocation: (useManual: boolean) => void;
   setPublicAlbumUrl: (url: string) => void;
@@ -48,6 +49,7 @@ export const useSettingsInitialization = (props: InitializationProps) => {
         if (cancelled) return;
         if (settings.theme) props.setTheme(settings.theme);
         if (settings.defaultView) props.setDefaultView(settings.defaultView);
+        if (settings.keepScreenAwake !== undefined) props.setKeepScreenAwake(settings.keepScreenAwake === 'true');
         if (settings.backgroundDuration) props.setBackgroundDuration(parseInt(settings.backgroundDuration) || 30);
         if (settings.selectedAlbum) props.setSelectedAlbum(settings.selectedAlbum);
         if (settings.coordinates) props.setCoordinates(settings.coordinates);

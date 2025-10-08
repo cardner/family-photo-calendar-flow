@@ -15,6 +15,10 @@ export interface SettingsContextType {
   defaultView: 'month' | 'week' | 'timeline';
   /** Update default view preference */
   setDefaultView: (view: 'month' | 'week' | 'timeline') => void;
+  /** Whether to keep screen awake when app is visible */
+  keepScreenAwake: boolean;
+  /** Update screen wake lock preference */
+  setKeepScreenAwake: (enabled: boolean) => void;
   
   // Weather Settings (Sensitive - encrypted when possible)
   /** User's coordinates for weather location */
