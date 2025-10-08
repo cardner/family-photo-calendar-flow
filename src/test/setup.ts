@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom';
 import 'fake-indexeddb/auto';
+const globalScope = globalThis as typeof globalThis & { window?: typeof globalThis };
+if (typeof globalScope.window === 'undefined') {
+  globalScope.window = globalScope as unknown as Window & typeof globalThis;
+}
+
 import { beforeAll, afterEach, afterAll, vi } from 'vitest';
 import { server } from './mocks/server';
 import { act } from '@testing-library/react';

@@ -56,6 +56,10 @@ class SettingsStorageService {
    */
   private async initDB(): Promise<void> {
     if (this.db) return;
+    if (typeof indexedDB === 'undefined') {
+      this.db = null;
+      return;
+    }
 
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion);
