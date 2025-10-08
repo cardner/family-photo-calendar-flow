@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { settingsStorageService } from '@/services/settingsStorageService';
+import { safeLocalStorage } from '@/utils/storage/safeLocalStorage';
 
 export const useDisplaySettings = () => {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
@@ -39,9 +40,9 @@ export const useDisplaySettings = () => {
       } catch (error) {
         console.warn('Failed to load display settings:', error);
         // Fallback to localStorage for compatibility
-        const fallbackTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
-        const fallbackDefaultView = localStorage.getItem('defaultView') as 'month' | 'week' | 'timeline' | null;
-        const fallbackKeepScreenAwake = localStorage.getItem('keepScreenAwake');
+        const fallbackTheme = safeLocalStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
+        const fallbackDefaultView = safeLocalStorage.getItem('defaultView') as 'month' | 'week' | 'timeline' | null;
+        const fallbackKeepScreenAwake = safeLocalStorage.getItem('keepScreenAwake');
         
         if (fallbackTheme) setTheme(fallbackTheme);
         if (fallbackDefaultView) setDefaultView(fallbackDefaultView);
@@ -61,7 +62,7 @@ export const useDisplaySettings = () => {
     settingsStorageService.setValue('theme', theme).catch(error => {
       console.warn('Failed to save theme to tiered storage:', error);
       // Fallback to localStorage
-      localStorage.setItem('theme', theme);
+  safeLocalStorage.setItem('theme', theme);
     });
   }, [theme, isInitialized]);
 
@@ -72,7 +73,7 @@ export const useDisplaySettings = () => {
     settingsStorageService.setValue('defaultView', defaultView).catch(error => {
       console.warn('Failed to save defaultView to tiered storage:', error);
       // Fallback to localStorage
-      localStorage.setItem('defaultView', defaultView);
+  safeLocalStorage.setItem('defaultView', defaultView);
     });
   }, [defaultView, isInitialized]);
 
@@ -83,7 +84,7 @@ export const useDisplaySettings = () => {
     settingsStorageService.setValue('keepScreenAwake', keepScreenAwake.toString()).catch(error => {
       console.warn('Failed to save keepScreenAwake to tiered storage:', error);
       // Fallback to localStorage
-      localStorage.setItem('keepScreenAwake', keepScreenAwake.toString());
+  safeLocalStorage.setItem('keepScreenAwake', keepScreenAwake.toString());
     });
   }, [keepScreenAwake, isInitialized]);
 
