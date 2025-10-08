@@ -8,6 +8,7 @@
 
 import { secureStorage } from '@/utils/security/secureStorage';
 import { settingsStorageService } from '@/services/settingsStorageService';
+import { safeLocalStorage } from '@/utils/storage/safeLocalStorage';
 
 interface LoadedSettings {
   theme?: 'light' | 'dark' | 'system' | null;
@@ -34,7 +35,7 @@ export const getStorageValue = async (key: string, isSensitive: boolean = false)
   } catch (error) {
     console.warn(`Failed to get ${key} from tiered storage:`, error);
     // Fallback to direct localStorage access
-    return localStorage.getItem(key);
+    return safeLocalStorage.getItem(key);
   }
 };
 
@@ -46,7 +47,7 @@ export const saveStorageValue = async (key: string, value: string, isSensitive: 
     await settingsStorageService.setValue(key, value);
   } catch (error) {
     console.warn(`Failed to save ${key} to tiered storage, using localStorage fallback:`, error);
-    localStorage.setItem(key, value);
+    safeLocalStorage.setItem(key, value);
   }
 };
 
@@ -76,18 +77,18 @@ export class SettingsStorage {
       
       // Fallback to direct localStorage access
       return {
-        theme: localStorage.getItem('theme') as 'light' | 'dark' | 'system' | null,
-        defaultView: localStorage.getItem('defaultView') as 'month' | 'week' | 'timeline' | null,
-        backgroundDuration: localStorage.getItem('backgroundDuration'),
-        selectedAlbum: localStorage.getItem('selectedAlbum'),
-        coordinates: localStorage.getItem('coordinates'),
-        weatherProvider: localStorage.getItem('weatherProvider'),
-        useManualLocation: localStorage.getItem('useManualLocation'),
-        publicAlbumUrl: localStorage.getItem('publicAlbumUrl'),
-        githubOwner: localStorage.getItem('githubOwner'),
-        githubRepo: localStorage.getItem('githubRepo'),
-        notionToken: localStorage.getItem('notion_token'),
-        notionDatabaseId: localStorage.getItem('notion_database_id'),
+        theme: safeLocalStorage.getItem('theme') as 'light' | 'dark' | 'system' | null,
+        defaultView: safeLocalStorage.getItem('defaultView') as 'month' | 'week' | 'timeline' | null,
+        backgroundDuration: safeLocalStorage.getItem('backgroundDuration'),
+        selectedAlbum: safeLocalStorage.getItem('selectedAlbum'),
+        coordinates: safeLocalStorage.getItem('coordinates'),
+        weatherProvider: safeLocalStorage.getItem('weatherProvider'),
+        useManualLocation: safeLocalStorage.getItem('useManualLocation'),
+        publicAlbumUrl: safeLocalStorage.getItem('publicAlbumUrl'),
+        githubOwner: safeLocalStorage.getItem('githubOwner'),
+        githubRepo: safeLocalStorage.getItem('githubRepo'),
+        notionToken: safeLocalStorage.getItem('notion_token'),
+        notionDatabaseId: safeLocalStorage.getItem('notion_database_id'),
       };
     }
   }
@@ -99,11 +100,11 @@ export class SettingsStorage {
     const sensitiveKeys = ['coordinates', 'publicAlbumUrl', 'githubOwner', 'githubRepo', 'notion_token', 'notion_database_id'];
     
     for (const key of sensitiveKeys) {
-      const oldValue = localStorage.getItem(key);
+      const oldValue = safeLocalStorage.getItem(key);
       if (oldValue) {
         try {
           await secureStorage.store(key, oldValue, 'defaultPassword');
-          localStorage.removeItem(key);
+          safeLocalStorage.removeItem(key);
         } catch (error) {
           console.warn(`Failed to migrate ${key}:`, error);
         }
@@ -120,13 +121,13 @@ export class SettingsStorage {
       const cacheStats = settingsStorageService.getCacheStats();
       if (cacheStats.keys.includes(key)) {
         // Cache hit - async call but we need sync, so fallback to localStorage
-        return localStorage.getItem(key);
+        return safeLocalStorage.getItem(key);
       }
       
-      return localStorage.getItem(key);
+      return safeLocalStorage.getItem(key);
     } catch (error) {
       console.warn(`Failed to get ${key}:`, error);
-      return localStorage.getItem(key);
+      return safeLocalStorage.getItem(key);
     }
   }
 
@@ -138,7 +139,7 @@ export class SettingsStorage {
       await settingsStorageService.setValue(key, value);
     } catch (error) {
       console.warn(`Failed to save ${key} to tiered storage, using localStorage fallback:`, error);
-      localStorage.setItem(key, value);
+      safeLocalStorage.setItem(key, value);
     }
   }
 
@@ -151,7 +152,7 @@ export class SettingsStorage {
     } catch (error) {
       console.warn(`Failed to remove ${key} from tiered storage:`, error);
       // Fallback to direct removal
-      localStorage.removeItem(key);
+      safeLocalStorage.removeItem(key);
       if (isSensitive && secureStorage.exists('test')) {
         secureStorage.remove(key);
       }
