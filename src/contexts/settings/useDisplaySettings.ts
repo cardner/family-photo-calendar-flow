@@ -23,7 +23,7 @@ export const useDisplaySettings = () => {
   // Load initial settings from tiered storage
   useEffect(() => {
     let isMounted = true;
-
+    
     const loadSettings = async () => {
       try {
         const savedTheme = await settingsStorageService.getValue('theme') as 'light' | 'dark' | 'system' | null;
@@ -31,7 +31,7 @@ export const useDisplaySettings = () => {
         const savedKeepScreenAwake = await settingsStorageService.getValue('keepScreenAwake');
         
         if (!isMounted) return;
-
+        
         if (savedTheme) {
           setTheme(savedTheme);
         }
@@ -43,6 +43,9 @@ export const useDisplaySettings = () => {
         }
       } catch (error) {
         console.warn('Failed to load display settings:', error);
+        
+        if (!isMounted) return;
+        
         // Fallback to localStorage for compatibility
         const fallbackTheme = safeLocalStorage.getItem('theme') as 'light' | 'dark' | 'system' | null;
         const fallbackDefaultView = safeLocalStorage.getItem('defaultView') as 'month' | 'week' | 'timeline' | null;
@@ -61,6 +64,7 @@ export const useDisplaySettings = () => {
     };
     
     loadSettings();
+    
     return () => {
       isMounted = false;
     };
