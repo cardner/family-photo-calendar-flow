@@ -15,9 +15,9 @@ interface TimelineViewProps {
 
 const TimelineView = ({ events, getWeatherForDate, onNotionEventClick }: TimelineViewProps) => {
   try {
-    // Get today and the next 2 days (total of 3 days starting from today)
+    // Get today and the next 6 days (total of 7 days starting from today)
     const today = new Date();
-    const next3Days = Array.from({ length: 3 }, (_, i) => addDays(today, i));
+    const next7Days = Array.from({ length: 7 }, (_, i) => addDays(today, i));
     
     // Helper function to check if an event is all-day
     const isAllDayEvent = (event: Event) => {
@@ -74,7 +74,7 @@ const TimelineView = ({ events, getWeatherForDate, onNotionEventClick }: Timelin
     };
 
     // Group events by date and categorize them
-    const groupedEventsByDay = next3Days.map(day => {
+    const groupedEventsByDay = next7Days.map(day => {
       try {
         const dayEvents = getEventsForDay(day);
         
