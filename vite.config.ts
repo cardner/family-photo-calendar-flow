@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => ({
     }
   },
   test: {
-    environment: 'happy-dom', // or 'happy-dom'
+    environment: 'jsdom', // or 'happy-dom'
   },
   plugins: [
     react(),
