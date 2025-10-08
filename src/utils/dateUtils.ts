@@ -1,15 +1,4 @@
 
-export const getNext3Days = () => {
-  const today = new Date();
-  const days = [];
-  for (let i = 0; i < 3; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    days.push(date);
-  }
-  return days;
-};
-
 export const getWeekDays = (weekOffset: number = 0) => {
   const today = new Date();
   const startOfWeek = new Date(today);
