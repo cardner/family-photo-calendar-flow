@@ -5,6 +5,40 @@ if (typeof globalScope.window === 'undefined') {
   globalScope.window = globalScope as unknown as Window & typeof globalThis;
 }
 
+const activeTimeouts = new Set<ReturnType<typeof setTimeout>>();
+const activeIntervals = new Set<ReturnType<typeof setInterval>>();
+
+const originalSetTimeout = globalScope.setTimeout.bind(globalScope);
+const originalClearTimeout = globalScope.clearTimeout.bind(globalScope);
+const originalSetInterval = globalScope.setInterval.bind(globalScope);
+const originalClearInterval = globalScope.clearInterval.bind(globalScope);
+
+globalScope.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+  const id = originalSetTimeout(handler, timeout, ...args);
+  activeTimeouts.add(id);
+  return id;
+}) as typeof setTimeout;
+
+globalScope.clearTimeout = ((id?: ReturnType<typeof setTimeout>) => {
+  if (id !== undefined) {
+    activeTimeouts.delete(id as ReturnType<typeof setTimeout>);
+  }
+  return originalClearTimeout(id as any);
+}) as typeof clearTimeout;
+
+globalScope.setInterval = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+  const id = originalSetInterval(handler, timeout, ...args);
+  activeIntervals.add(id);
+  return id;
+}) as typeof setInterval;
+
+globalScope.clearInterval = ((id?: ReturnType<typeof setInterval>) => {
+  if (id !== undefined) {
+    activeIntervals.delete(id as ReturnType<typeof setInterval>);
+  }
+  return originalClearInterval(id as any);
+}) as typeof clearInterval;
+
 import { beforeAll, afterEach, afterAll, vi } from 'vitest';
 import { server } from './mocks/server';
 import { act } from '@testing-library/react';
@@ -13,7 +47,7 @@ import { act } from '@testing-library/react';
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
 // Reset handlers after each test
-afterEach(() => {
+afterEach(async () => {
   server.resetHandlers();
   vi.clearAllMocks();
   // Clear mock storage to prevent memory leaks
@@ -22,6 +56,20 @@ afterEach(() => {
   if (global.gc) {
     global.gc();
   }
+
+  // Clear any pending timers to avoid cross-test leakage
+  for (const timeoutId of Array.from(activeTimeouts)) {
+    clearTimeout(timeoutId);
+  }
+  activeTimeouts.clear();
+
+  for (const intervalId of Array.from(activeIntervals)) {
+    clearInterval(intervalId);
+  }
+  activeIntervals.clear();
+
+  // Allow any pending microtasks to settle before the next test file starts
+  await Promise.resolve();
 });
 
 // Clean up after all tests are done
