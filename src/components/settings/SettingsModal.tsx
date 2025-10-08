@@ -53,7 +53,9 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
     theme, 
     setTheme, 
     defaultView, 
-    setDefaultView
+    setDefaultView,
+    keepScreenAwake,
+    setKeepScreenAwake
   } = useSettings();
   
   const { handleThemeChange, versionInfo } = useSettingsModal();
@@ -139,6 +141,8 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                   onThemeChange={onThemeChange}
                   defaultView={defaultView}
                   onDefaultViewChange={setDefaultView}
+                  keepScreenAwake={keepScreenAwake}
+                  onKeepScreenAwakeChange={setKeepScreenAwake}
                 />
               </TabsContent>
 

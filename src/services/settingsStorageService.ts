@@ -19,6 +19,7 @@ interface SettingsItem {
 interface LoadedSettings {
   theme?: 'light' | 'dark' | 'system' | null;
   defaultView?: 'month' | 'week' | 'timeline' | null;
+  keepScreenAwake?: string | null;
   backgroundDuration?: string | null;
   selectedAlbum?: string | null;
   coordinates?: string | null;
@@ -240,7 +241,7 @@ class SettingsStorageService {
   async loadAllSettings(): Promise<LoadedSettings> {
     try {
       const settingsKeys = [
-        'theme', 'defaultView', 'backgroundDuration', 'selectedAlbum',
+        'theme', 'defaultView', 'keepScreenAwake', 'backgroundDuration', 'selectedAlbum',
         'coordinates', 'weatherProvider',
         'publicAlbumUrl', 'githubOwner', 'githubRepo', 
         'notionToken', 'notion_token', 'notionDatabaseId', 'notion_database_id',

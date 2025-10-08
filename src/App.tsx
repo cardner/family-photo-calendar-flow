@@ -16,6 +16,14 @@ import NotFound from "./pages/NotFound";
 import { useState, useEffect } from "react";
 import { getCurrentVersion, getStoredVersion } from "@/utils/versionManager";
 import WhatsNewModal from "@/components/WhatsNewModal";
+import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
+import { useSettings } from "@/contexts/settings/SettingsContext";
+
+const WakeLockManager = () => {
+  const { keepScreenAwake } = useSettings();
+  useScreenWakeLock(keepScreenAwake);
+  return null;
+};
 
 const queryClient = new QueryClient();
 
@@ -41,6 +49,7 @@ const App = () => {
       <ThemeProvider>
         <SecurityProvider>
           <SettingsProvider>
+            <WakeLockManager />
             <WeatherProvider>
               <CalendarSelectionProvider>
               <TooltipProvider>

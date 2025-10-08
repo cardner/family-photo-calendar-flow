@@ -11,9 +11,11 @@ interface DisplayTabProps {
   onThemeChange: (theme: 'light' | 'dark' | 'system') => void;
   defaultView: 'month' | 'timeline' | 'week';
   onDefaultViewChange: (view: 'month' | 'timeline' | 'week') => void;
+  keepScreenAwake: boolean;
+  onKeepScreenAwakeChange: (enabled: boolean) => void;
 }
 
-const DisplayTab = ({ theme, onThemeChange, defaultView, onDefaultViewChange }: DisplayTabProps) => {
+const DisplayTab = ({ theme, onThemeChange, defaultView, onDefaultViewChange, keepScreenAwake, onKeepScreenAwakeChange }: DisplayTabProps) => {
   return (
     <div className="space-y-6">
       <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -78,6 +80,35 @@ const DisplayTab = ({ theme, onThemeChange, defaultView, onDefaultViewChange }: 
               </Label>
             </div>
           </RadioGroup>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <CardHeader>
+          <CardTitle className="text-gray-900 dark:text-gray-100">Screen Wake Lock</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
+            Prevent the screen from turning off or going to sleep while the app is visible
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Keep Screen Awake
+              </Label>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Useful for presentations or when viewing the calendar for extended periods
+              </p>
+            </div>
+            <Button
+              variant={keepScreenAwake ? "default" : "outline"}
+              size="sm"
+              onClick={() => onKeepScreenAwakeChange(!keepScreenAwake)}
+              className="ml-4"
+            >
+              {keepScreenAwake ? "Enabled" : "Disabled"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
