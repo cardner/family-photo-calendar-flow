@@ -27,6 +27,7 @@ interface ProxyResponse {
 export class NotionAPIClient {
   // Direct Notion REST base (used in production only when behind a trusted proxy we control)
   private readonly baseURL = 'https://api.notion.com/v1';
+  private readonly proxyURL = 'http://192.168.50.185:40091/proxy';
 
   // Determine runtime environment capabilities
   private get useDevProxy(): boolean {
@@ -36,13 +37,9 @@ export class NotionAPIClient {
 
   private resolveUrl(endpoint: string): string {
     if (this.useDevProxy) {
-      // Use relative path so browser hits Vite dev server (avoids CORS)
       return `/notion${endpoint}`;
     }
-    // In production the static site cannot call Notion API directly (CORS + secret exposure).
-    // A serverless proxy must be provided; we point to baseURL so that if user deploys behind
-    // a reverse proxy it will work. Otherwise request will fail with clear error.
-    return `${this.baseURL}${endpoint}`;
+    return `${this.proxyURL}${endpoint}`;
   }
 
   private async makeRequest<T = unknown>(endpoint: string, token: string, options: RequestInit = {}): Promise<T> {
@@ -57,7 +54,7 @@ export class NotionAPIClient {
     };
 
     // If not using dev proxy AND running in browser, warn about likely CORS failure
-    if (!this.useDevProxy && typeof window !== 'undefined') {
+    if (!this.useDevProxy && typeof window !== 'undefined' && !url.startsWith(this.proxyURL)) {
       console.warn('[NotionAPIClient] Direct browser call to Notion API – this will likely fail due to CORS. Configure a serverless proxy or deploy with one.');
     }
 
