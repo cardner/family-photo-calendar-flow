@@ -41,11 +41,24 @@ const EditableCalendarCard = ({
   const [editData, setEditData] = useState<EditData>({
     name: calendar.name,
     url: calendar.url,
-  color: calendar.color,
-  syncFrequencyPerDay: calendar.syncFrequencyPerDay || 0
+	color: calendar.color,
+	syncFrequencyPerDay: calendar.syncFrequencyPerDay || 0
   });
   const ORIGINAL_REF = useRef(calendar);
   const draftKey = `calendar_edit_draft_${calendar.id}`;
+
+  useEffect(() => {
+    ORIGINAL_REF.current = calendar;
+    if (isEditing) {
+      return;
+    }
+    setEditData({
+      name: calendar.name,
+      url: calendar.url,
+	color: calendar.color,
+	syncFrequencyPerDay: calendar.syncFrequencyPerDay || 0
+    });
+  }, [calendar, isEditing]);
 
   // Load draft on mount (auto-enter editing if draft present)
   useEffect(() => {
