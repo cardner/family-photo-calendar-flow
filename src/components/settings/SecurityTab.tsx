@@ -7,6 +7,7 @@ import SecurityStatusDisplay from './security/SecurityStatusDisplay';
 import SecurityEnableForm from './security/SecurityEnableForm';
 import SecurityUnlockForm from './security/SecurityUnlockForm';
 import SecurityDisableSection from './security/SecurityDisableSection';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 const SecurityTab = () => {
   const { 
@@ -21,19 +22,18 @@ const SecurityTab = () => {
   const needsUnlock = hasSecuritySalt && !isSecurityEnabled;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Shield className="h-5 w-5" />
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Security Settings</h3>
-      </div>
-      
-      <p className="text-sm text-gray-600 dark:text-gray-400">
-        {needsUnlock 
-          ? "Enter your password to unlock encrypted data"
-          : "Configure client-side encryption for your sensitive data"
-        }
-      </p>
-
+    <SettingsSectionCard
+      heading={(
+        <span className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Security Settings
+        </span>
+      )}
+      description={needsUnlock
+        ? 'Enter your password to unlock encrypted data'
+        : 'Configure client-side encryption for your sensitive data'}
+      contentClassName="space-y-4"
+    >
       <SecurityUnlockBanner />
 
       <SecurityStatusDisplay
@@ -49,7 +49,7 @@ const SecurityTab = () => {
       ) : (
         <SecurityEnableForm onEnableSecurity={enableSecurity} />
       )}
-    </div>
+    </SettingsSectionCard>
   );
 };
 

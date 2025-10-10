@@ -1,6 +1,6 @@
 import React from 'react';
 import { TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Camera, Monitor, CloudSun, Calendar, Shield } from 'lucide-react';
+import { Camera, Monitor, CloudSun, Calendar, Shield, Download } from 'lucide-react';
 
 const SettingsTabNavigation = () => {
   return (
@@ -40,7 +40,6 @@ const SettingsTabNavigation = () => {
         <span className="hidden sm:inline">Weather</span>
         <span className="sm:hidden">Wthr</span>
       </TabsTrigger>
-      
       
       <TabsTrigger
         value="security"

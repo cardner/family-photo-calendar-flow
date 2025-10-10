@@ -11,6 +11,7 @@ import { WeatherProvider } from "@/contexts/weather/WeatherProvider";
 import { CalendarSelectionProvider } from "@/hooks/CalendarSelectionProvider";
 import InstallPrompt from "@/components/InstallPrompt";
 import UpdateNotification from "@/components/UpdateNotification";
+import SettingsModal from "@/components/SettingsModal";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { useState, useEffect } from "react";
@@ -18,6 +19,8 @@ import { getCurrentVersion, getStoredVersion } from "@/utils/versionManager";
 import WhatsNewModal from "@/components/WhatsNewModal";
 import { useScreenWakeLock } from "@/hooks/useScreenWakeLock";
 import { useSettings } from "@/contexts/settings/SettingsContext";
+import { SettingsModalControllerProvider } from "@/contexts/settings/SettingsModalController";
+import { useSettingsModalController } from "@/contexts/settings/SettingsModalControllerContext";
 
 const WakeLockManager = () => {
   const { keepScreenAwake } = useSettings();
@@ -26,6 +29,20 @@ const WakeLockManager = () => {
 };
 
 const queryClient = new QueryClient();
+
+const SettingsModalRoot = () => {
+  const { isOpen, activeTab, openModal, closeModal, setActiveTab } =
+    useSettingsModalController();
+
+  return (
+    <SettingsModal
+      open={isOpen}
+      onOpenChange={(open) => (open ? openModal(activeTab) : closeModal())}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+    />
+  );
+};
 
 const App = () => {
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -49,14 +66,16 @@ const App = () => {
       <ThemeProvider>
         <SecurityProvider>
           <SettingsProvider>
-            <WakeLockManager />
-            <WeatherProvider>
+            <SettingsModalControllerProvider>
+              <WakeLockManager />
+              <WeatherProvider>
               <CalendarSelectionProvider>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
                 <InstallPrompt />
                 <UpdateNotification />
+                <SettingsModalRoot />
                 <WhatsNewModal 
                   open={showWhatsNew} 
                   onOpenChange={setShowWhatsNew} 
@@ -69,7 +88,8 @@ const App = () => {
                 </BrowserRouter>
               </TooltipProvider>
               </CalendarSelectionProvider>
-            </WeatherProvider>
+              </WeatherProvider>
+            </SettingsModalControllerProvider>
           </SettingsProvider>
         </SecurityProvider>
       </ThemeProvider>

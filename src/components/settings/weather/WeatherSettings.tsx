@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 import { MapPin, Lock, AlertTriangle, Navigation } from 'lucide-react';
 import { useSecurity } from '@/contexts/security/SecurityContext';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 
 interface WeatherSettingsProps {
   coordinates: string;
@@ -98,48 +100,41 @@ const WeatherSettings = ({
     checkLocationPermission();
   }, []);
 
+  const locationModeDescription = useManualLocation
+    ? 'Using manually entered latitude and longitude'
+    : 'Using browser geolocation for current position';
+
   return (
     <div className="space-y-4">
       {/* Weather Service Info */}
-      <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <h4 className="font-medium text-blue-800 dark:text-blue-200">National Weather Service</h4>
-        </div>
-        <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-          Using the free National Weather Service API. No API key required.
-        </p>
-      </div>
+      <InfoBanner variant="info">
+        <InfoBannerIcon>
+          <MapPin className="h-5 w-5" />
+        </InfoBannerIcon>
+        <InfoBannerContent>
+          <InfoBannerTitle variant="info">National Weather Service</InfoBannerTitle>
+          <InfoBannerDescription variant="info">
+            Using the free National Weather Service API. No API key required.
+          </InfoBannerDescription>
+        </InfoBannerContent>
+      </InfoBanner>
 
       {/* Location Settings */}
-      <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-600 dark:text-gray-400" />
-          <h4 className="font-medium text-gray-900 dark:text-gray-100">Location Settings</h4>
-        </div>
-        
+      <SettingsSectionCard
+        heading="Location Settings"
+        description={locationModeDescription}
+  icon={<MapPin className="h-4 w-4 text-gray-600 dark:text-gray-400" />}
+        actions={(
+          <Button
+            onClick={toggleManualLocation}
+            variant={useManualLocation ? "default" : "outline"}
+            size="sm"
+          >
+            {useManualLocation ? 'Switch to Auto' : 'Use Manual'}
+          </Button>
+        )}
+      >
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {useManualLocation ? 'Manual Coordinates Entry' : 'Automatic Location Detection'}
-              </div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">
-                {useManualLocation 
-                  ? 'Using manually entered latitude and longitude'
-                  : 'Using browser geolocation for current position'
-                }
-              </div>
-            </div>
-            <Button
-              onClick={toggleManualLocation}
-              variant={useManualLocation ? "default" : "outline"}
-              size="sm"
-            >
-              {useManualLocation ? 'Switch to Auto' : 'Use Manual'}
-            </Button>
-          </div>
-
           {!useManualLocation && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -182,14 +177,14 @@ const WeatherSettings = ({
           )}
 
           {useManualLocation && (
-            <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-700">
+            <div className="pt-3 border-t border-green-200 dark:border-green-700">
               <div className="text-xs text-green-700 dark:text-green-300">
                 Manual coordinates entry enabled. Enter latitude and longitude below.
               </div>
             </div>
           )}
         </div>
-      </div>
+      </SettingsSectionCard>
 
       {/* Coordinates Input */}
       {useManualLocation && (
@@ -224,15 +219,14 @@ const WeatherSettings = ({
       )}
 
       {/* Help Text */}
-      <div className="p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-        <div className="flex items-start gap-2">
-          <AlertTriangle className="h-4 w-4 text-gray-600 dark:text-gray-400 mt-0.5" />
-          <div className="text-sm text-gray-700 dark:text-gray-300">
-            <p className="font-medium">About National Weather Service</p>
-            <p>The NWS provides free, accurate weather data for the United States. No API key or registration required.</p>
-          </div>
-        </div>
-      </div>
+      <SettingsSectionCard
+        heading="About National Weather Service"
+  icon={<AlertTriangle className="h-4 w-4 text-gray-600 dark:text-gray-400" />}
+      >
+        <p className="text-sm text-gray-700 dark:text-gray-300">
+          The NWS provides free, accurate weather data for the United States. No API key or registration required.
+        </p>
+      </SettingsSectionCard>
     </div>
   );
 };

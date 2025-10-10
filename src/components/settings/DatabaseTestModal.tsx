@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, CheckCircle, AlertCircle, Database, Eye, Hash } from 'lucide-react';
 import { notionService } from '@/services/notionService';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 
 interface DatabaseTestModalProps {
   open: boolean;
@@ -145,12 +145,17 @@ const DatabaseTestModal = ({ open, onOpenChange, token, onConfirm }: DatabaseTes
               {testResult.success ? (
                 <div className="space-y-4">
                   {/* Success Message */}
-                  <Alert className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800">
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <AlertDescription className="text-green-800 dark:text-green-200">
-                      Successfully connected to database! You can now add this to your calendars.
-                    </AlertDescription>
-                  </Alert>
+                  <InfoBanner variant="success">
+                    <InfoBannerIcon>
+                      <CheckCircle className="h-5 w-5" />
+                    </InfoBannerIcon>
+                    <InfoBannerContent>
+                      <InfoBannerTitle variant="success">Database connection successful</InfoBannerTitle>
+                      <InfoBannerDescription variant="success">
+                        Successfully connected to database! You can now add this to your calendars.
+                      </InfoBannerDescription>
+                    </InfoBannerContent>
+                  </InfoBanner>
 
                   {/* Database Info */}
                   <Card className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
@@ -200,13 +205,17 @@ const DatabaseTestModal = ({ open, onOpenChange, token, onConfirm }: DatabaseTes
                   </Card>
                 </div>
               ) : (
-                <Alert className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
-                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  <AlertDescription className="text-red-800 dark:text-red-200">
-                    <div className="font-medium">Database access failed</div>
-                    <div className="text-sm mt-1">{!testResult.success && 'error' in testResult ? testResult.error : null}</div>
-                  </AlertDescription>
-                </Alert>
+                <InfoBanner variant="destructive">
+                  <InfoBannerIcon>
+                    <AlertCircle className="h-5 w-5" />
+                  </InfoBannerIcon>
+                  <InfoBannerContent>
+                    <InfoBannerTitle variant="destructive">Database access failed</InfoBannerTitle>
+                    <InfoBannerDescription variant="destructive" className="text-sm">
+                      {!testResult.success && 'error' in testResult ? testResult.error : null}
+                    </InfoBannerDescription>
+                  </InfoBannerContent>
+                </InfoBanner>
               )}
             </div>
           )}
@@ -236,17 +245,19 @@ const DatabaseTestModal = ({ open, onOpenChange, token, onConfirm }: DatabaseTes
           </div>
 
           {/* Help Section */}
-          <Alert className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-            <Hash className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <AlertDescription className="text-blue-800 dark:text-blue-200 text-sm">
-              <div className="font-medium mb-1">How to find your database ID:</div>
-              <div className="space-y-1 text-xs">
-                <div>• <strong>From URL:</strong> Copy the share URL from Notion</div>
-                <div>• <strong>Direct ID:</strong> Find the 32-character hex string in the URL</div>
-                <div>• <strong>Must share:</strong> Ensure the database is shared with your integration</div>
-              </div>
-            </AlertDescription>
-          </Alert>
+          <InfoBanner variant="info">
+            <InfoBannerIcon>
+              <Hash className="h-5 w-5" />
+            </InfoBannerIcon>
+            <InfoBannerContent>
+              <InfoBannerTitle variant="info">How to find your database ID</InfoBannerTitle>
+              <InfoBannerDescription variant="info" className="space-y-1 text-xs sm:text-sm">
+                <div>• <strong>From URL:</strong> Copy the share URL from Notion.</div>
+                <div>• <strong>Direct ID:</strong> Find the 32-character hex string in the URL.</div>
+                <div>• <strong>Must share:</strong> Ensure the database is shared with your integration.</div>
+              </InfoBannerDescription>
+            </InfoBannerContent>
+          </InfoBanner>
         </div>
       </DialogContent>
     </Dialog>

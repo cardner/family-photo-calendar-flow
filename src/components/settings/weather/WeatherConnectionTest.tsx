@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, XCircle, Loader2, Key, Eye, ChevronDown, ChevronUp, Smartphone } from 'lucide-react';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 import { useWeather } from '@/contexts/weather/WeatherContext';
 import { useWeatherSettings } from '@/contexts/settings/useWeatherSettings';
 import { WeatherTestResult } from '@/types/weather';
@@ -172,21 +172,25 @@ const WeatherConnectionTest = ({
 
       {testResult && (
         <div className="space-y-2">
-          <Alert className={testResult.success ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800'}>
-            {testResult.success ? (
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            ) : (
-              <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            )}
-            <AlertDescription className={testResult.success ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
-              <div className="flex items-center justify-between">
-                <span>{testResult.message}</span>
+          <InfoBanner variant={testResult.success ? 'success' : 'destructive'}>
+            <InfoBannerIcon>
+              {testResult.success ? (
+                <CheckCircle className="h-5 w-5" />
+              ) : (
+                <XCircle className="h-5 w-5" />
+              )}
+            </InfoBannerIcon>
+            <InfoBannerContent className="flex-1">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <InfoBannerTitle variant={testResult.success ? 'success' : 'destructive'}>
+                  {testResult.message}
+                </InfoBannerTitle>
                 {!testResult.success && detailedError && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowErrorDetails(!showErrorDetails)}
-                    className="ml-2 h-6 px-2 text-xs"
+                    className="ml-0 sm:ml-2 h-6 px-2 text-xs"
                   >
                     {showErrorDetails ? (
                       <>
@@ -202,49 +206,52 @@ const WeatherConnectionTest = ({
                   </Button>
                 )}
               </div>
-            </AlertDescription>
-          </Alert>
-          
+            </InfoBannerContent>
+          </InfoBanner>
+
           {!testResult.success && detailedError && showErrorDetails && (
-            <Alert className="bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700">
-              <AlertDescription className="text-gray-700 dark:text-gray-300">
-                <div className="space-y-1">
-                  <div className="font-semibold text-sm">Detailed Error Information:</div>
-                  <div className="text-xs font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded border">
+            <InfoBanner>
+              <InfoBannerIcon asChild={false} className="mt-0">
+                <Key className="h-5 w-5" />
+              </InfoBannerIcon>
+              <InfoBannerContent>
+                <InfoBannerTitle>Detailed error information</InfoBannerTitle>
+                <InfoBannerDescription className="space-y-2 text-xs sm:text-sm">
+                  <div className="font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
                     {detailedError}
                   </div>
-                   <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                     If this error persists, please check:
-                     <ul className="list-disc list-inside mt-1 space-y-1">
-                       <li>Your internet connection</li>
-                       <li>Coordinates format (latitude,longitude)</li>
-                       <li>National Weather Service API status</li>
-                       <li>Location is within the United States</li>
-                     </ul>
-                   </div>
-                </div>
-              </AlertDescription>
-            </Alert>
-           )}
-          
+                  <div className="text-gray-600 dark:text-gray-400">
+                    If this error persists, please check:
+                    <ul className="list-disc list-inside mt-1 space-y-1">
+                      <li>Your internet connection</li>
+                      <li>Coordinates format (latitude,longitude)</li>
+                      <li>National Weather Service API status</li>
+                      <li>Location is within the United States</li>
+                    </ul>
+                  </div>
+                </InfoBannerDescription>
+              </InfoBannerContent>
+            </InfoBanner>
+          )}
+
           {/* PWA-specific information */}
           {pwaInfo && (
-            <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
-              <Smartphone className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <AlertDescription className="text-blue-700 dark:text-blue-300">
-                 <div className="space-y-2">
-                   <div className="font-semibold text-sm">
-                     {pwaInfo.isPWA ? '📱 PWA Mode Detected' : '🌐 Browser Mode'}
-                   </div>
-                   <div className="text-xs space-y-1">
-                     <div>✅ Using National Weather Service API (free)</div>
-                     {pwaInfo.recommendations.map((rec, index) => (
-                       <div key={index}>• {rec}</div>
-                     ))}
-                   </div>
-                 </div>
-              </AlertDescription>
-            </Alert>
+            <InfoBanner variant="info">
+              <InfoBannerIcon>
+                <Smartphone className="h-5 w-5" />
+              </InfoBannerIcon>
+              <InfoBannerContent>
+                <InfoBannerTitle variant="info">
+                  {pwaInfo.isPWA ? '📱 PWA Mode Detected' : '🌐 Browser Mode'}
+                </InfoBannerTitle>
+                <InfoBannerDescription variant="info" className="space-y-1 text-xs sm:text-sm">
+                  <div>✅ Using National Weather Service API (free)</div>
+                  {pwaInfo.recommendations.map((rec, index) => (
+                    <div key={index}>• {rec}</div>
+                  ))}
+                </InfoBannerDescription>
+              </InfoBannerContent>
+            </InfoBanner>
           )}
         </div>
       )}

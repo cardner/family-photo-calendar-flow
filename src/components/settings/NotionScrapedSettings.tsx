@@ -8,6 +8,8 @@ import { useSettings } from '@/contexts/settings/SettingsContext';
 import { NotionUrlForm } from './NotionUrlForm';
 import ScrapedCalendarCard from './ScrapedCalendarCard';
 import { toast } from 'sonner';
+import { InfoBanner, InfoBannerContent, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 interface NotionScrapedSettingsProps {
   selectedCalendarIds: string[];
@@ -129,13 +131,7 @@ const NotionScrapedSettings = ({ selectedCalendarIds, onToggleSelection }: Notio
   return (
     <div className="space-y-4">
       {/* Header with Add Button and Sync All */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="font-medium">Notion Databases</h4>
-          <p className="text-sm text-gray-600">
-            Connect your Notion databases to sync events automatically
-          </p>
-        </div>
+      <div className="flex items-end justify-end">
         <div className="flex gap-2">
           {enabledCalendars.length > 0 && (
             <Button
@@ -162,39 +158,47 @@ const NotionScrapedSettings = ({ selectedCalendarIds, onToggleSelection }: Notio
 
       {/* Stats Summary */}
       {calendars.length > 0 && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <span className="text-gray-600">Databases:</span>
-              <span className="ml-2 font-medium">{calendars.length}</span>
+        <InfoBanner variant="info">
+          <InfoBannerIcon>
+            <Calendar className="h-5 w-5" />
+          </InfoBannerIcon>
+          <InfoBannerContent>
+            <InfoBannerTitle variant="info">Database summary</InfoBannerTitle>
+            <div className="grid grid-cols-2 gap-4 text-sm text-blue-900 dark:text-blue-100 md:grid-cols-4">
+              <div>
+                <span className="text-blue-700 dark:text-blue-200">Databases:</span>
+                <span className="ml-2 font-medium">{calendars.length}</span>
+              </div>
+              <div>
+                <span className="text-blue-700 dark:text-blue-200">Active:</span>
+                <span className="ml-2 font-medium">{enabledCalendars.length}</span>
+              </div>
+              <div>
+                <span className="text-blue-700 dark:text-blue-200">Visible:</span>
+                <span className="ml-2 font-medium">{selectedCount}</span>
+              </div>
+              <div>
+                <span className="text-blue-700 dark:text-blue-200">Total Events:</span>
+                <span className="ml-2 font-medium">{totalEvents}</span>
+              </div>
             </div>
-            <div>
-              <span className="text-gray-600">Active:</span>
-              <span className="ml-2 font-medium">{enabledCalendars.length}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Visible:</span>
-              <span className="ml-2 font-medium">{selectedCount}</span>
-            </div>
-            <div>
-              <span className="text-gray-600">Total Events:</span>
-              <span className="ml-2 font-medium">{totalEvents}</span>
-            </div>
-          </div>
-        </div>
+          </InfoBannerContent>
+        </InfoBanner>
       )}
 
       {/* Add Form */}
       {showAddForm && (
-        <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
-          <h5 className="font-medium mb-3">Add Notion Database</h5>
+        <SettingsSectionCard
+          heading="Add Notion Database"
+          contentClassName="space-y-4"
+        >
           <NotionUrlForm
             onSubmit={handleAddCalendar}
             onCancel={() => setShowAddForm(false)}
             validateUrl={validateNotionUrl}
             showDebugButton={false}
           />
-        </div>
+        </SettingsSectionCard>
       )}
 
       {/* Calendar Cards */}

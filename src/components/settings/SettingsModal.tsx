@@ -24,7 +24,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, X } from 'lucide-react';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
 import { useSettings } from '@/contexts/settings/SettingsContext';
 import { useSettingsModal } from '@/hooks/useSettingsModal';
 import SettingsModalHeader from './SettingsModalHeader';
@@ -35,6 +35,8 @@ import DisplayTab from './DisplayTab';
 import WeatherTab from './WeatherTab';
 import CalendarsTab from './CalendarsTab';
 import LogsTab from './LogsTab';
+import SettingsTabPanel from './layout/SettingsTabPanel';
+import UpdateTab from './UpdateTab';
 
 interface SettingsModalProps {
   /** Controls modal visibility */
@@ -124,19 +126,19 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
             <SettingsTabNavigation />
 
             <div className="mt-4 sm:mt-6">
-              {/* Calendar management content */}
-              <TabsContent value="calendars" className="space-y-4 mt-0">
+              <SettingsTabPanel
+                value="calendars"
+                layout={{ variant: 'surface', bleed: true, fullHeight: true }}
+              >
                 <CalendarsTab />
-              </TabsContent>
+              </SettingsTabPanel>
 
-              {/* Photo backgrounds content */}
-              <TabsContent value="photos" className="space-y-4 mt-0">
+              <SettingsTabPanel value="photos">
                 <PhotosTab />
-              </TabsContent>
+              </SettingsTabPanel>
 
-              {/* Display preferences content */}
-              <TabsContent value="display" className="space-y-4 mt-0">
-                <DisplayTab 
+              <SettingsTabPanel value="display">
+                <DisplayTab
                   theme={theme}
                   onThemeChange={onThemeChange}
                   defaultView={defaultView}
@@ -144,25 +146,21 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                   keepScreenAwake={keepScreenAwake}
                   onKeepScreenAwakeChange={setKeepScreenAwake}
                 />
-              </TabsContent>
+              </SettingsTabPanel>
 
-              {/* Weather configuration content */}
-              <TabsContent value="weather" className="space-y-4 mt-0">
+              <SettingsTabPanel value="weather">
                 <WeatherTab />
-              </TabsContent>
+              </SettingsTabPanel>
 
-
-              {/* Security settings content */}
-              <TabsContent value="security" className="space-y-4 mt-0">
+              <SettingsTabPanel value="security">
                 <SecurityTab />
-              </TabsContent>
+              </SettingsTabPanel>
 
-              {/* Logs content */}
-              <TabsContent value="logs" className="focus-visible:outline-none">
+              <SettingsTabPanel value="logs" layout={false}>
                 <div ref={logsScopeRef} data-logs-scope>
                   <LogsTab />
                 </div>
-              </TabsContent>
+              </SettingsTabPanel>
             </div>
           </Tabs>
         </div>

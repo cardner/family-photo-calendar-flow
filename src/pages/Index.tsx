@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Calendar from '@/components/Calendar';
 import WeatherWidget from '@/components/WeatherWidget';
-import SettingsModal from '@/components/SettingsModal';
 import NotionEventModal from '@/components/NotionEventModal';
 import { Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,9 @@ import { PerformanceMonitor, IntervalManager, displayOptimizations } from '@/uti
 import { Event } from '@/types/calendar';
 import { NotionScrapedEvent } from '@/services/NotionPageScraper';
 import { useNotionScrapedCalendars } from '@/hooks/useNotionScrapedCalendars';
+import { useSettingsModalController } from '@/contexts/settings/SettingsModalControllerContext';
 const Index = () => {
   const [currentBg, setCurrentBg] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
   const [backgroundImages, setBackgroundImages] = useState<string[]>(getDefaultBackgroundImages());
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -26,6 +25,7 @@ const Index = () => {
   const {
     events: notionEvents
   } = useNotionScrapedCalendars();
+  const { openModal: openSettingsModal } = useSettingsModalController();
   const handleNotionEventClick = (event: Event) => {
     // Find the corresponding NotionScrapedEvent
     const notionEvent = notionEvents.find(ne => ne.id === event.id);
@@ -221,11 +221,9 @@ const Index = () => {
       </div>
 
       {/* Responsive Settings Button - Fixed in lower right corner */}
-      <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)} className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 z-20 text-white hover:bg-white/20 bg-black/20 backdrop-blur-sm border border-white/20 h-10 w-10 sm:h-11 sm:w-11 p-0">
+      <Button variant="ghost" size="sm" onClick={() => openSettingsModal()} className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 md:bottom-6 md:right-6 z-20 text-white hover:bg-white/20 bg-black/20 backdrop-blur-sm border border-white/20 h-10 w-10 sm:h-11 sm:w-11 p-0">
         <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
       </Button>
-
-      <SettingsModal open={showSettings} onOpenChange={setShowSettings} />
 
       <NotionEventModal open={isNotionModalOpen} onOpenChange={setIsNotionModalOpen} event={selectedNotionEvent} />
     </div>;

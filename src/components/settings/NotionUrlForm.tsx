@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 import { Loader2, TestTube, Bug, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
 
 interface NotionUrlFormProps {
@@ -140,20 +140,27 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
   return (
     <div className="space-y-4">
       {/* Instructions */}
-      <Alert>
-        <ExternalLink className="h-4 w-4" />
-        <AlertDescription>
-          <div className="space-y-2">
-            <p><strong>Before adding your database:</strong></p>
-            <ol className="list-decimal list-inside space-y-1 text-sm">
-              <li>Create an integration at <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">notion.so/my-integrations</a></li>
+      <InfoBanner variant="info">
+        <InfoBannerIcon>
+          <ExternalLink className="h-5 w-5" />
+        </InfoBannerIcon>
+        <InfoBannerContent>
+          <InfoBannerTitle variant="info">Before adding your database</InfoBannerTitle>
+          <InfoBannerDescription variant="info" className="space-y-2 text-sm">
+            <ol className="list-decimal list-inside space-y-1">
+              <li>
+                Create an integration at{' '}
+                <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  notion.so/my-integrations
+                </a>
+              </li>
               <li>Copy the integration token (starts with "ntn_")</li>
               <li>Share your database with the integration</li>
               <li>Copy the database URL from your browser</li>
             </ol>
-          </div>
-        </AlertDescription>
-      </Alert>
+          </InfoBannerDescription>
+        </InfoBannerContent>
+      </InfoBanner>
 
       {/* Integration Token */}
       <div>
@@ -210,21 +217,31 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
 
       {/* Validation Result */}
       {validationResult.status === 'success' && (
-        <Alert className="border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
-            Connection successful! Database is accessible and ready to sync.
-          </AlertDescription>
-        </Alert>
+        <InfoBanner variant="success">
+          <InfoBannerIcon>
+            <CheckCircle className="h-5 w-5" />
+          </InfoBannerIcon>
+          <InfoBannerContent>
+            <InfoBannerTitle variant="success">Connection successful</InfoBannerTitle>
+            <InfoBannerDescription variant="success">
+              Database is accessible and ready to sync.
+            </InfoBannerDescription>
+          </InfoBannerContent>
+        </InfoBanner>
       )}
 
       {validationResult.status === 'error' && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {validationResult.error}
-          </AlertDescription>
-        </Alert>
+        <InfoBanner variant="destructive">
+          <InfoBannerIcon>
+            <AlertCircle className="h-5 w-5" />
+          </InfoBannerIcon>
+          <InfoBannerContent>
+            <InfoBannerTitle variant="destructive">Connection failed</InfoBannerTitle>
+            <InfoBannerDescription variant="destructive">
+              {validationResult.error}
+            </InfoBannerDescription>
+          </InfoBannerContent>
+        </InfoBanner>
       )}
 
       {/* Calendar Configuration - only show after successful validation */}

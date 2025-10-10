@@ -33,18 +33,39 @@ const MAX_ENTRIES = 300;     // cap in-memory/persisted entries
 const MAX_RENDER = 200;      // cap rendered entries in UI
 const MAX_PERSISTED_RESPONSE = 512; // trim response when persisting
 
+type TieredSettingsStore = {
+  getItem?(key: string): string | null;
+  setItem?(key: string, value: string): void;
+  removeItem?(key: string): void;
+  get?(key: string): string | null;
+  set?(key: string, value: string): void;
+  remove?(key: string): void;
+};
+
+type TieredSettingsWindow = Window & {
+  __fpTieredSettings?: TieredSettingsStore | null;
+  __tieredSettings?: TieredSettingsStore | null;
+  __settingsStorage?: TieredSettingsStore | null;
+};
+
+const getTieredStore = (): TieredSettingsStore | null => {
+  if (typeof window === 'undefined') return null;
+  const tieredWindow = window as TieredSettingsWindow;
+  return (
+    tieredWindow.__fpTieredSettings ??
+    tieredWindow.__tieredSettings ??
+    tieredWindow.__settingsStorage ??
+    null
+  );
+};
+
 // Prefer existing tiered settings storage if available, fallback to localStorage
 function tieredGetItem(key: string): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const anyWin = window as any;
-    const s =
-      anyWin.__fpTieredSettings ||
-      anyWin.__tieredSettings ||
-      anyWin.__settingsStorage ||
-      null;
-    if (s?.getItem) return s.getItem(key);
-    if (s?.get) return s.get(key);
+    const store = getTieredStore();
+    if (store?.getItem) return store.getItem(key);
+    if (store?.get) return store.get(key);
   } catch (err) {
     console.warn('[tieredGetItem] Failed to read from tiered storage:', err);
   }
@@ -58,14 +79,15 @@ function tieredGetItem(key: string): string | null {
 function tieredSetItem(key: string, value: string) {
   if (typeof window === 'undefined') return;
   try {
-    const anyWin = window as any;
-    const s =
-      anyWin.__fpTieredSettings ||
-      anyWin.__tieredSettings ||
-      anyWin.__settingsStorage ||
-      null;
-    if (s?.setItem) return void s.setItem(key, value);
-    if (s?.set) return void s.set(key, value);
+    const store = getTieredStore();
+    if (store?.setItem) {
+      store.setItem(key, value);
+      return;
+    }
+    if (store?.set) {
+      store.set(key, value);
+      return;
+    }
   } catch (err) {
     console.warn('[tieredSetItem] Failed to write to tiered storage:', err);
   }
@@ -78,14 +100,15 @@ function tieredSetItem(key: string, value: string) {
 function tieredRemoveItem(key: string) {
   if (typeof window === 'undefined') return;
   try {
-    const anyWin = window as any;
-    const s =
-      anyWin.__fpTieredSettings ||
-      anyWin.__tieredSettings ||
-      anyWin.__settingsStorage ||
-      null;
-    if (s?.removeItem) return void s.removeItem(key);
-    if (s?.remove) return void s.remove(key);
+    const store = getTieredStore();
+    if (store?.removeItem) {
+      store.removeItem(key);
+      return;
+    }
+    if (store?.remove) {
+      store.remove(key);
+      return;
+    }
   } catch (err) {
     console.warn('[tieredRemoveItem] Failed to remove from tiered storage:', err);
   }
@@ -154,7 +177,7 @@ function schedulePersist(entries: LogItem[]): void {
   }
 }
 
-export const useLogStore = create<LogState>((set) => ({
+const useLogStore = create<LogState>((set) => ({
     entries: typeof window === 'undefined' ? [] : loadPersistedEntries(),
     addEntry: (entry) =>
         set((state) => {
@@ -216,6 +239,20 @@ function categorize(url: string): 'calendar' | 'notion' | 'other' {
 // Cache for resolving source name/color to avoid repeated storage reads
 type MetaCache = { exp: number; calendars?: unknown[]; notion?: unknown[] };
 let __metaCache: MetaCache = { exp: 0 };
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const pickString = (source: Record<string, unknown>, keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const candidate = source[key];
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate;
+    }
+  }
+  return undefined;
+};
+
 function getMetaSnapshot(): MetaCache {
   const now = Date.now();
   if (now < __metaCache.exp && (__metaCache.calendars || __metaCache.notion)) return __metaCache;
@@ -236,8 +273,11 @@ function getMetaSnapshot(): MetaCache {
   let calendars: unknown[] | undefined;
   try {
     const cal = tryKeys(['fp.calendars', 'settings.calendars', 'calendar.feeds', 'calendars', 'fp.settings.calendars']) || [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    calendars = Array.isArray(cal) ? cal : Array.isArray((cal as any)?.feeds) ? (cal as any).feeds : undefined;
+    if (Array.isArray(cal)) {
+      calendars = cal;
+    } else if (isRecord(cal) && Array.isArray(cal.feeds)) {
+      calendars = cal.feeds as unknown[];
+    }
   } catch (err) {
     console.warn('[getMetaSnapshot] Failed to load calendars:', err);
   }
@@ -245,8 +285,15 @@ function getMetaSnapshot(): MetaCache {
   let notion: unknown[] | undefined;
   try {
     const nd = tryKeys(['fp.notion.databases', 'settings.notion.databases', 'notion.databases', 'notionDatabases', 'fp.settings.notion']) || [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    notion = Array.isArray(nd) ? nd : Array.isArray((nd as any)?.databases) ? (nd as any).databases : Array.isArray((nd as any)?.items) ? (nd as any).items : undefined;
+    if (Array.isArray(nd)) {
+      notion = nd;
+    } else if (isRecord(nd)) {
+      if (Array.isArray(nd.databases)) {
+        notion = nd.databases as unknown[];
+      } else if (Array.isArray(nd.items)) {
+        notion = nd.items as unknown[];
+      }
+    }
   } catch (err) {
     console.warn('[getMetaSnapshot] Failed to load notion databases:', err);
   }
@@ -261,11 +308,14 @@ function resolveSourceMeta(url: string, tag: 'calendar' | 'notion' | 'other', in
 
   if (tag === 'calendar') {
     const list = snap.calendars || [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const match = Array.isArray(list) ? list.find((c: any) => typeof c?.url === 'string' && url.includes(c.url)) : undefined;
-    if (match) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return { name: (match as any).name || (match as any).title || (match as any).label, color: (match as any).color || (match as any).colour || (match as any).tint };
+    const match = Array.isArray(list)
+      ? list.find((candidate) => isRecord(candidate) && typeof candidate.url === 'string' && url.includes(candidate.url))
+      : undefined;
+    if (match && isRecord(match)) {
+      return {
+        name: pickString(match, ['name', 'title', 'label']),
+        color: pickString(match, ['color', 'colour', 'tint']) ?? '#0ea5e9',
+      };
     }
     return { color: '#0ea5e9' };
   }
@@ -281,8 +331,7 @@ function resolveSourceMeta(url: string, tag: 'calendar' | 'notion' | 'other', in
     if (!dbId && init?.body && typeof init.body === 'string') {
       try {
         const body = JSON.parse(init.body);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if (typeof (body as any)?.database_id === 'string') dbId = (body as any).database_id;
+          if (isRecord(body) && typeof body.database_id === 'string') dbId = body.database_id;
       } catch (err) {
         console.warn('[resolveSourceMeta] Failed to parse database ID from body:', err);
       }
@@ -290,14 +339,17 @@ function resolveSourceMeta(url: string, tag: 'calendar' | 'notion' | 'other', in
     const list = snap.notion || [];
     if (Array.isArray(list) && dbId) {
       const canon = (s: string): string => s.replace(/-/g, '').toLowerCase();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const match = list.find((d: any) =>
-          (typeof d?.id === 'string' && canon(d.id) === canon(dbId!)) ||
-          (typeof d?.databaseId === 'string' && canon(d.databaseId) === canon(dbId!))
+      const match = list.find(
+        (candidate) =>
+          isRecord(candidate) &&
+          ((typeof candidate.id === 'string' && canon(candidate.id) === canon(dbId)) ||
+            (typeof candidate.databaseId === 'string' && canon(candidate.databaseId) === canon(dbId)))
       );
-      if (match) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return { name: (match as any).name || (match as any).title || (match as any).label, color: (match as any).color || (match as any).colour || (match as any).tint };
+      if (match && isRecord(match)) {
+        return {
+          name: pickString(match, ['name', 'title', 'label']),
+          color: pickString(match, ['color', 'colour', 'tint']) ?? '#8b5cf6',
+        };
       }
     }
     return { color: '#8b5cf6' };
@@ -540,10 +592,9 @@ if (typeof window !== 'undefined' && !window.__fp_networkLogPatched) {
 
         if (ctype.includes('application/json') && clen !== undefined && clen <= MAX_JSON_BYTES) {
           const clone = res.clone();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const json = await clone.json() as any;
+          const json = (await clone.json()) as unknown;
           if (Array.isArray(json)) count = json.length;
-          else if (json && typeof json === 'object') {
+          else if (isRecord(json)) {
             if (Array.isArray(json.results)) count = json.results.length;
             else if (Array.isArray(json.items)) count = json.items.length;
             else if (Array.isArray(json.data)) count = json.data.length;

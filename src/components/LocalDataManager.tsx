@@ -1,10 +1,12 @@
 
 import React, { useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Upload, Trash2, HardDrive } from 'lucide-react';
+import { Download, Upload, Trash2, HardDrive, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { localDataManager } from '@/utils/localDataManager';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
+import { Progress } from '@/components/ui/progress';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 const LocalDataManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -68,32 +70,34 @@ const LocalDataManager = () => {
   const usagePercentage = (storageUsage.used / storageUsage.total) * 100;
 
   return (
-    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+    <SettingsSectionCard
+      heading={(
+        <span className="flex items-center gap-2">
           <HardDrive className="h-5 w-5" />
           Local Data Management
-        </CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-400">
-          Backup, restore, and manage your local calendar data and settings using tiered storage
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </span>
+      )}
+      description="Backup, restore, and manage your local calendar data and settings using tiered storage"
+      contentClassName="space-y-4"
+    >
         {/* Storage Usage */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Storage Usage</span>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {(storageUsage.used / 1024).toFixed(1)} KB of {(storageUsage.total / 1024 / 1024).toFixed(1)} MB
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div 
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-            />
-          </div>
-        </div>
+        <InfoBanner className="flex-col sm:flex-row items-stretch sm:items-center" variant="muted">
+          <InfoBannerIcon
+            asChild={false}
+            className="mt-0 inline-flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+          >
+            <HardDrive className="h-4 w-4" />
+          </InfoBannerIcon>
+          <InfoBannerContent className="flex-1 space-y-2">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <InfoBannerTitle>Storage usage</InfoBannerTitle>
+              <InfoBannerDescription>
+                {(storageUsage.used / 1024).toFixed(1)} KB of {(storageUsage.total / 1024 / 1024).toFixed(1)} MB
+              </InfoBannerDescription>
+            </div>
+            <Progress value={Math.min(usagePercentage, 100)} className="h-2" />
+          </InfoBannerContent>
+        </InfoBanner>
 
         {/* Data Management Actions */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -133,14 +137,18 @@ const LocalDataManager = () => {
           className="hidden"
         />
 
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Note:</strong> Your calendar data and settings are stored using a tiered storage system (cache → localStorage → IndexedDB). 
-            Regular backups are recommended to prevent data loss.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+        <InfoBanner variant="info">
+          <InfoBannerIcon>
+            <Info className="h-4 w-4" />
+          </InfoBannerIcon>
+          <InfoBannerContent>
+            <InfoBannerTitle variant="info">Backup tip</InfoBannerTitle>
+            <InfoBannerDescription variant="info">
+              Your calendar data and settings use tiered storage (cache → localStorage → IndexedDB). Regular backups help prevent data loss.
+            </InfoBannerDescription>
+          </InfoBannerContent>
+        </InfoBanner>
+    </SettingsSectionCard>
   );
 };
 

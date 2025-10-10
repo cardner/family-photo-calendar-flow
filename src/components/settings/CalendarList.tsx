@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar as CalendarIcon, RefreshCw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useCalendarSelection } from '@/hooks/useCalendarSelection';
 import { useICalCalendars } from '@/hooks/useICalCalendars';
 import { useToast } from '@/hooks/use-toast';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 const CalendarList = () => {
   const { 
@@ -105,18 +105,16 @@ const CalendarList = () => {
   }
 
   return (
-    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+    <SettingsSectionCard
+      heading={(
+        <span className="flex items-center gap-2">
           <CalendarIcon className="h-5 w-5" />
           Available Calendars
-        </CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-400">
-          Select which calendars to display in your calendar view. Changes will automatically update the calendar dropdown and view.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+        </span>
+      )}
+      description="Select which calendars to display in your calendar view. Changes will automatically update the calendar dropdown and view."
+      contentClassName="space-y-4"
+    >
           {/* Quick Actions */}
           <div className="flex gap-2 pb-3 border-b border-gray-200 dark:border-gray-700">
             <Button
@@ -234,9 +232,7 @@ const CalendarList = () => {
               All data is stored locally in your browser. External calendars can be synced and deleted individually.
             </p>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+    </SettingsSectionCard>
   );
 };
 

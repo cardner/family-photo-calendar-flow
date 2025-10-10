@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Edit2, Save, X, RefreshCw, Trash2, ExternalLink } from 'lucide-react';
 import { ICalCalendar } from '@/types/ical';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 
 const CALENDAR_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
 
@@ -135,8 +136,9 @@ const EditableCalendarCard = ({
   const hasValidUrl = calendar.url && calendar.url.trim() !== '';
 
   return (
-    <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-      <div className="flex items-center justify-between p-4">
+    <Card className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1">
           <div 
             className="w-4 h-4 rounded-full border cursor-pointer" 
@@ -277,10 +279,11 @@ const EditableCalendarCard = ({
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
-      </div>
+        </div>
+      </CardContent>
       
-      <div className="px-4 pb-4 pt-2 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
+      <CardFooter className="p-0 px-4 pb-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-2">
             <Checkbox 
               id={`calendar-selection-${calendar.id}`} 
@@ -298,8 +301,8 @@ const EditableCalendarCard = ({
             </span>
           )}
         </div>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 };
 

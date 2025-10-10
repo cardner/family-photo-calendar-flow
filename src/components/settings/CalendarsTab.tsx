@@ -9,17 +9,17 @@ const CalendarsTab = () => {
   const { selectedCalendarIds, toggleCalendar } = useCalendarSelection();
 
   return (
-    <div className="space-y-6 bg-gray-50 dark:bg-gray-900 min-h-full p-1 -m-1 rounded-lg">
+    <>
       <LocalDataManager />
-      <ICalSettings 
+      <ICalSettings
         selectedCalendarIds={selectedCalendarIds}
         onToggleSelection={toggleCalendar}
       />
-      <NotionIntegration 
+      <NotionIntegration
         selectedCalendarIds={selectedCalendarIds}
         onToggleSelection={toggleCalendar}
       />
-    </div>
+    </>
   );
 };
 

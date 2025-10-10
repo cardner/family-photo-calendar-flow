@@ -8,6 +8,7 @@ import { useICalCalendars } from '@/hooks/useICalCalendars';
 import { useNotionScrapedCalendars } from '@/hooks/useNotionScrapedCalendars';
 import { Wifi, WifiOff, RotateCcw, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 
 const BackgroundSyncSettings = () => {
   const {
@@ -89,75 +90,77 @@ const BackgroundSyncSettings = () => {
       <CardContent className="space-y-4">
         {/* Sync Support Status */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-2">
+          <InfoBanner variant={isBackgroundSyncSupported ? 'success' : 'destructive'}>
+            <InfoBannerIcon asChild={false} className="mt-0">
               {isBackgroundSyncSupported ? (
-                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <CheckCircle className="h-5 w-5" />
               ) : (
-                <WifiOff className="h-4 w-4 text-red-600 dark:text-red-400" />
+                <WifiOff className="h-5 w-5" />
               )}
-              <span className="font-medium text-gray-900 dark:text-gray-100">Background Sync</span>
-            </div>
-            <Badge 
-              variant={isBackgroundSyncSupported ? "default" : "destructive"}
-              className="text-xs"
-            >
-              {isBackgroundSyncSupported ? 'Supported' : 'Not Supported'}
-            </Badge>
-          </div>
+            </InfoBannerIcon>
+            <InfoBannerContent className="flex-1">
+              <InfoBannerTitle variant={isBackgroundSyncSupported ? 'success' : 'destructive'}>
+                Background Sync
+              </InfoBannerTitle>
+              <Badge
+                variant={isBackgroundSyncSupported ? 'default' : 'destructive'}
+                className="text-xs"
+              >
+                {isBackgroundSyncSupported ? 'Supported' : 'Not Supported'}
+              </Badge>
+            </InfoBannerContent>
+          </InfoBanner>
 
-          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-2 mb-2">
+          <InfoBanner variant={isPeriodicSyncSupported ? 'success' : 'warning'}>
+            <InfoBannerIcon asChild={false} className="mt-0">
               {isPeriodicSyncSupported ? (
-                <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <Clock className="h-5 w-5" />
               ) : (
-                <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                <AlertCircle className="h-5 w-5" />
               )}
-              <span className="font-medium text-gray-900 dark:text-gray-100">Periodic Sync</span>
-            </div>
-            <Badge 
-              variant={isPeriodicSyncSupported ? "default" : "secondary"}
-              className="text-xs"
-            >
-              {isPeriodicSyncSupported ? 'Supported' : 'Limited Support'}
-            </Badge>
-          </div>
+            </InfoBannerIcon>
+            <InfoBannerContent className="flex-1">
+              <InfoBannerTitle variant={isPeriodicSyncSupported ? 'success' : 'warning'}>
+                Periodic Sync
+              </InfoBannerTitle>
+              <Badge
+                variant={isPeriodicSyncSupported ? 'default' : 'secondary'}
+                className="text-xs"
+              >
+                {isPeriodicSyncSupported ? 'Supported' : 'Limited Support'}
+              </Badge>
+            </InfoBannerContent>
+          </InfoBanner>
         </div>
 
         {/* Last Sync Result */}
         {lastSyncResult && (
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="font-medium text-blue-900 dark:text-blue-200">Last Background Sync</span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-              <div>
-                <div className="font-medium text-blue-900 dark:text-blue-200">
-                  {format(new Date(lastSyncResult.timestamp), 'MMM d, HH:mm')}
+          <InfoBanner variant="info">
+            <InfoBannerIcon>
+              <CheckCircle className="h-5 w-5" />
+            </InfoBannerIcon>
+            <InfoBannerContent>
+              <InfoBannerTitle variant="info">Last background sync</InfoBannerTitle>
+              <div className="grid grid-cols-2 gap-3 text-sm text-blue-900 dark:text-blue-100 md:grid-cols-4">
+                <div>
+                  <div className="font-medium">{format(new Date(lastSyncResult.timestamp), 'MMM d, HH:mm')}</div>
+                  <div className="text-blue-700 dark:text-blue-300">Time</div>
                 </div>
-                <div className="text-blue-700 dark:text-blue-300">Time</div>
-              </div>
-              <div>
-                <div className="font-medium text-blue-900 dark:text-blue-200">
-                  {lastSyncResult.syncedCount}
+                <div>
+                  <div className="font-medium">{lastSyncResult.syncedCount}</div>
+                  <div className="text-blue-700 dark:text-blue-300">Synced</div>
                 </div>
-                <div className="text-blue-700 dark:text-blue-300">Synced</div>
-              </div>
-              <div>
-                <div className="font-medium text-blue-900 dark:text-blue-200">
-                  {lastSyncResult.errorCount}
+                <div>
+                  <div className="font-medium">{lastSyncResult.errorCount}</div>
+                  <div className="text-blue-700 dark:text-blue-300">Errors</div>
                 </div>
-                <div className="text-blue-700 dark:text-blue-300">Errors</div>
-              </div>
-              <div>
-                <div className="font-medium text-blue-900 dark:text-blue-200">
-                  {lastSyncResult.totalCalendars}
+                <div>
+                  <div className="font-medium">{lastSyncResult.totalCalendars}</div>
+                  <div className="text-blue-700 dark:text-blue-300">Total</div>
                 </div>
-                <div className="text-blue-700 dark:text-blue-300">Total</div>
               </div>
-            </div>
-          </div>
+            </InfoBannerContent>
+          </InfoBanner>
         )}
 
         {/* Information */}
@@ -197,12 +200,16 @@ const BackgroundSyncSettings = () => {
 
         {/* Calendar Count Info */}
         {enabledCalendarsCount > 0 && (
-          <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Background sync is configured for <strong>{enabledCalendarsCount}</strong> enabled calendar{enabledCalendarsCount !== 1 ? 's' : ''} 
-              ({calendars.filter(cal => cal.enabled).length} iCal + {notionCalendars.filter(cal => cal.enabled).length} Notion).
-            </div>
-          </div>
+          <InfoBanner>
+            <InfoBannerIcon>
+              <Wifi className="h-5 w-5" />
+            </InfoBannerIcon>
+            <InfoBannerContent>
+              <InfoBannerDescription>
+                Background sync monitors <strong>{enabledCalendarsCount}</strong> calendar{enabledCalendarsCount !== 1 ? 's' : ''} ({calendars.filter(cal => cal.enabled).length} iCal + {notionCalendars.filter(cal => cal.enabled).length} Notion).
+              </InfoBannerDescription>
+            </InfoBannerContent>
+          </InfoBanner>
         )}
       </CardContent>
     </Card>

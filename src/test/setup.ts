@@ -5,8 +5,11 @@ if (typeof globalScope.window === 'undefined') {
   globalScope.window = globalScope as unknown as Window & typeof globalThis;
 }
 
-const activeTimeouts = new Set<ReturnType<typeof setTimeout>>();
-const activeIntervals = new Set<ReturnType<typeof setInterval>>();
+type TimeoutId = ReturnType<typeof setTimeout>;
+type IntervalId = ReturnType<typeof setInterval>;
+
+const activeTimeouts = new Set<TimeoutId>();
+const activeIntervals = new Set<IntervalId>();
 
 const originalSetTimeout = globalScope.setTimeout.bind(globalScope);
 const originalClearTimeout = globalScope.clearTimeout.bind(globalScope);
@@ -19,11 +22,11 @@ globalScope.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unk
   return id;
 }) as typeof setTimeout;
 
-globalScope.clearTimeout = ((id?: ReturnType<typeof setTimeout>) => {
+globalScope.clearTimeout = ((id?: TimeoutId) => {
   if (id !== undefined) {
-    activeTimeouts.delete(id as ReturnType<typeof setTimeout>);
+    activeTimeouts.delete(id);
+    originalClearTimeout(id);
   }
-  return originalClearTimeout(id as any);
 }) as typeof clearTimeout;
 
 globalScope.setInterval = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
@@ -32,11 +35,11 @@ globalScope.setInterval = ((handler: TimerHandler, timeout?: number, ...args: un
   return id;
 }) as typeof setInterval;
 
-globalScope.clearInterval = ((id?: ReturnType<typeof setInterval>) => {
+globalScope.clearInterval = ((id?: IntervalId) => {
   if (id !== undefined) {
-    activeIntervals.delete(id as ReturnType<typeof setInterval>);
+    activeIntervals.delete(id);
+    originalClearInterval(id);
   }
-  return originalClearInterval(id as any);
 }) as typeof clearInterval;
 
 import { beforeAll, afterEach, afterAll, vi } from 'vitest';
