@@ -72,17 +72,8 @@ const AlbumUrlInput = ({ onTestConnection }: AlbumUrlInputProps) => {
 
   return (
     <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-          <Camera className="h-5 w-5" />
-          Google Photos Album
-        </CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-400">
-          Connect a public Google Photos album for rotating background images
-        </CardDescription>
-      </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-4">
+        <div className="space-y-4 mt-3">
           <div className="space-y-2">
             <Label htmlFor="album-url" className="text-gray-700 dark:text-gray-300">Album Share URL</Label>
             <div className="flex gap-2">

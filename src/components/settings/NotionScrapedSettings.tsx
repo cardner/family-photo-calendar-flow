@@ -131,13 +131,7 @@ const NotionScrapedSettings = ({ selectedCalendarIds, onToggleSelection }: Notio
   return (
     <div className="space-y-4">
       {/* Header with Add Button and Sync All */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h4 className="font-medium">Notion Databases</h4>
-          <p className="text-sm text-gray-600">
-            Connect your Notion databases to sync events automatically
-          </p>
-        </div>
+      <div className="flex items-end justify-end">
         <div className="flex gap-2">
           {enabledCalendars.length > 0 && (
             <Button

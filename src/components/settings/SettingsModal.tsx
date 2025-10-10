@@ -152,10 +152,6 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
                 <WeatherTab />
               </SettingsTabPanel>
 
-              <SettingsTabPanel value="updates">
-                <UpdateTab />
-              </SettingsTabPanel>
-
               <SettingsTabPanel value="security">
                 <SecurityTab />
               </SettingsTabPanel>
