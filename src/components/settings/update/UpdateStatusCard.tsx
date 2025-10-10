@@ -1,9 +1,10 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 import { GitBranch, Download, CheckCircle, RefreshCw, ExternalLink } from 'lucide-react';
 import { UpdateInfo } from '@/types/update';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 interface UpdateStatusCardProps {
   updateAvailable: boolean;
@@ -25,48 +26,43 @@ const UpdateStatusCard = ({
   onOpenReleaseNotes
 }: UpdateStatusCardProps) => {
   return (
-    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2 text-gray-900 dark:text-gray-100">
+    <SettingsSectionCard
+      heading={(
+        <span className="flex items-center gap-2">
           <GitBranch className="h-5 w-5" />
           Update Status
-        </CardTitle>
-        <CardDescription className="text-gray-600 dark:text-gray-400">
-          Check for and install updates from GitHub releases
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </span>
+      )}
+      description="Check for and install updates from GitHub releases"
+      contentClassName="space-y-4"
+    >
         {/* Status Display */}
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-          {updateAvailable ? (
-            <>
+        <InfoBanner variant={updateAvailable ? 'info' : 'success'}>
+          <InfoBannerIcon>
+            {updateAvailable ? (
               <Download className="h-5 w-5 text-blue-500" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Update Available
-                </p>
-                {updateInfo && (
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    <p>Version {updateInfo.version}</p>
-                    <p>Released: {new Date(updateInfo.publishedAt).toLocaleDateString()}</p>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
+            ) : (
               <CheckCircle className="h-5 w-5 text-green-500" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  Up to Date
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  You have the latest available version
-                </p>
-              </div>
-            </>
-          )}
-        </div>
+            )}
+          </InfoBannerIcon>
+          <InfoBannerContent>
+            <InfoBannerTitle variant={updateAvailable ? 'info' : 'success'}>
+              {updateAvailable ? 'Update Available' : 'Up to Date'}
+            </InfoBannerTitle>
+            {updateAvailable ? (
+              updateInfo && (
+                <InfoBannerDescription variant="info" className="space-y-0.5">
+                  <span className="block">Version {updateInfo.version}</span>
+                  <span className="block">Released: {new Date(updateInfo.publishedAt).toLocaleDateString()}</span>
+                </InfoBannerDescription>
+              )
+            ) : (
+              <InfoBannerDescription variant="success">
+                You have the latest available version
+              </InfoBannerDescription>
+            )}
+          </InfoBannerContent>
+        </InfoBanner>
 
         {/* Action Buttons */}
         <div className="flex gap-3">
@@ -121,8 +117,7 @@ const UpdateStatusCard = ({
             </Button>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </SettingsSectionCard>
   );
 };
 

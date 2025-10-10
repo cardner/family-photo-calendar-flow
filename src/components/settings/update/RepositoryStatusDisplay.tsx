@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Check, X, GitBranch } from 'lucide-react';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 
 interface RepositoryStatusDisplayProps {
   currentRepo: string | null;
@@ -24,17 +25,17 @@ const RepositoryStatusDisplay = ({ currentRepo, validationStatus }: RepositorySt
   }
 
   return (
-    <div className="flex items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-      {getStatusIcon()}
-      <div className="flex-1">
-        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+    <InfoBanner>
+      <InfoBannerIcon>{getStatusIcon()}</InfoBannerIcon>
+      <InfoBannerContent>
+        <InfoBannerTitle>
           Current Repository: {currentRepo}
-        </p>
-        <p className="text-xs text-gray-600 dark:text-gray-400">
+        </InfoBannerTitle>
+        <InfoBannerDescription>
           Checking this repository for new releases
-        </p>
-      </div>
-    </div>
+        </InfoBannerDescription>
+      </InfoBannerContent>
+    </InfoBanner>
   );
 };
 

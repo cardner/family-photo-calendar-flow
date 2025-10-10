@@ -173,9 +173,9 @@ export const useNotionScrapedCalendars = () => {
       // Title
       let title = page.id;
       for (const key of Object.keys(page.properties)) {
-        const prop: any = (page.properties as any)[key];
-        if (prop?.type === 'title' && Array.isArray(prop.title) && prop.title.length) {
-          title = prop.title.map((t: any) => t?.plain_text || '').join('').trim() || title;
+        const property = page.properties[key];
+        if (property?.type === 'title' && Array.isArray(property.title) && property.title.length) {
+          title = property.title.map((fragment) => fragment.plain_text ?? '').join('').trim() || title;
           break;
         }
       }
@@ -184,10 +184,10 @@ export const useNotionScrapedCalendars = () => {
       let dateStart: string | undefined;
       let dateEnd: string | undefined;
       for (const key of Object.keys(page.properties)) {
-        const prop: any = (page.properties as any)[key];
-        if (prop?.type === 'date' && prop.date?.start) {
-          dateStart = prop.date.start;
-          dateEnd = prop.date.end;
+        const property = page.properties[key];
+        if (property?.type === 'date' && property.date?.start) {
+          dateStart = property.date.start;
+          dateEnd = property.date.end;
           break;
         }
       }
@@ -195,22 +195,37 @@ export const useNotionScrapedCalendars = () => {
 
       const simplified: NotionPropertyMap = {};
       for (const key of Object.keys(page.properties)) {
-        const prop: any = (page.properties as any)[key];
-        switch (prop?.type) {
+        const property = page.properties[key];
+        switch (property?.type) {
           case 'title':
-            simplified[key] = { type: 'title', title: prop.title?.map((t: any) => ({ plain_text: t.plain_text })) } as NotionTitleProperty;
+            simplified[key] = {
+              type: 'title',
+              title: property.title?.map((fragment) => ({ plain_text: fragment.plain_text })),
+            } as NotionTitleProperty;
             break;
           case 'rich_text':
-            simplified[key] = { type: 'rich_text', rich_text: prop.rich_text?.map((t: any) => ({ plain_text: t.plain_text })) } as NotionRichTextProperty;
+            simplified[key] = {
+              type: 'rich_text',
+              rich_text: property.rich_text?.map((fragment) => ({ plain_text: fragment.plain_text })),
+            } as NotionRichTextProperty;
             break;
           case 'select':
-            simplified[key] = { type: 'select', select: prop.select ? { name: prop.select.name } : null } as NotionSelectProperty;
+            simplified[key] = {
+              type: 'select',
+              select: property.select ? { name: property.select.name } : null,
+            } as NotionSelectProperty;
             break;
           case 'multi_select':
-            simplified[key] = { type: 'multi_select', multi_select: prop.multi_select?.map((o: any) => ({ name: o.name })) } as NotionMultiSelectProperty;
+            simplified[key] = {
+              type: 'multi_select',
+              multi_select: property.multi_select?.map((option) => ({ name: option.name })),
+            } as NotionMultiSelectProperty;
             break;
           case 'date':
-            simplified[key] = { type: 'date', date: { start: prop.date?.start, end: prop.date?.end } } as NotionDateProperty;
+            simplified[key] = {
+              type: 'date',
+              date: { start: property.date?.start, end: property.date?.end },
+            } as NotionDateProperty;
             break;
           default:
             break;
@@ -239,8 +254,8 @@ export const useNotionScrapedCalendars = () => {
   // Fetch database metadata (title etc.)
   const getDatabaseMetadata = useCallback(async (databaseId: string, token: string): Promise<Record<string, unknown>> => {
     try {
-      const db = await notionAPIClient.getDatabase(databaseId, token) as DatabaseObjectResponse;
-      const titleParts = (db.title || []).map(t => (t as any).plain_text || '').join('').trim();
+  const db: DatabaseObjectResponse = await notionAPIClient.getDatabase(databaseId, token);
+  const titleParts = (db.title || []).map((fragment) => fragment.plain_text ?? '').join('').trim();
       return {
         databaseTitle: titleParts || 'Notion Database',
         lastFetched: new Date().toISOString(),
@@ -458,7 +473,7 @@ export const useNotionScrapedCalendars = () => {
 
       throw error;
     }
-  }, [updateCalendar, loadEvents, toast]);
+  }, [getDatabaseMetadata, loadEvents, toast, transformPages, updateCalendar]);
 
   // Public API with rate limiting + per-calendar debounce
   const syncCalendar = useCallback(async (calendar: NotionScrapedCalendar) => {
@@ -523,7 +538,7 @@ export const useNotionScrapedCalendars = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [calendars, performSyncCalendar, toast]);
+  }, [calendars, notionRateLimiterRef, performSyncCalendar, toast]);
 
   // Validate a Notion integration and database
   const validateNotionUrl = useCallback(async (url: string, token?: string): Promise<{ isValid: boolean; error?: string }> => {
@@ -542,7 +557,7 @@ export const useNotionScrapedCalendars = () => {
   const testDatabaseAccess = useCallback(async (token: string, databaseId: string) => {
     try {
       const db = await notionAPIClient.getDatabase(databaseId, token);
-      return { success: true, id: (db as any).id };
+      return { success: true, id: db.id };
     } catch (e) {
       throw new Error(e instanceof Error ? e.message : 'Failed to test database access');
     }
@@ -578,11 +593,11 @@ export const useNotionScrapedCalendars = () => {
 
   // Auto-sync scheduler for Notion calendars based on syncFrequencyPerDay
   useEffect(() => {
-    const globalAny = window as any;
-    if (!globalAny.__notionAutoSyncTimers) {
-      globalAny.__notionAutoSyncTimers = new Map<string, number>();
+    const notionTimerWindow = window as Window & { __notionAutoSyncTimers?: Map<string, number> };
+    if (!notionTimerWindow.__notionAutoSyncTimers) {
+      notionTimerWindow.__notionAutoSyncTimers = new Map<string, number>();
     }
-    const timers: Map<string, number> = globalAny.__notionAutoSyncTimers;
+    const timers = notionTimerWindow.__notionAutoSyncTimers;
 
     // Clear timers for calendars no longer applicable
     timers.forEach((timeoutId, calId) => {

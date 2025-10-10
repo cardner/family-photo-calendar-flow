@@ -1,6 +1,8 @@
 
 import React from 'react';
 import { UpdateInfo } from '@/types/ical';
+import { FileText } from 'lucide-react';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 interface ReleaseNotesDisplayProps {
   updateAvailable: boolean;
@@ -13,14 +15,20 @@ const ReleaseNotesDisplay = ({ updateAvailable, updateInfo }: ReleaseNotesDispla
   }
 
   return (
-    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-      <h4 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
-        What's New in {updateInfo.version}:
-      </h4>
-      <div className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap max-h-32 overflow-y-auto">
+    <SettingsSectionCard
+      heading={(
+        <span className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Release Notes
+        </span>
+      )}
+      description={`What's new in version ${updateInfo.version}`}
+      contentClassName="space-y-2"
+    >
+      <div className="text-xs text-blue-800 dark:text-blue-200 whitespace-pre-wrap max-h-40 overflow-y-auto bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded p-3">
         {updateInfo.releaseNotes}
       </div>
-    </div>
+    </SettingsSectionCard>
   );
 };
 

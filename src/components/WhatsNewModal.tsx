@@ -14,6 +14,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sparkles, Calendar, Bug, Zap, Shield, Palette, Code } from 'lucide-react';
 import { getCurrentVersion, getStoredVersion, setStoredVersion, getVersionType } from '@/utils/versionManager';
 import { getChangesSince, type ChangeEntry } from '@/utils/changeTracker';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
+import {
+  InfoBanner,
+  InfoBannerContent,
+  InfoBannerDescription,
+  InfoBannerIcon,
+  InfoBannerTitle,
+} from '@/components/ui/info-banner';
 
 interface WhatsNewModalProps {
   open: boolean;
@@ -117,44 +125,43 @@ const WhatsNewModal = ({ open, onOpenChange }: WhatsNewModalProps) => {
           {changes.length > 0 ? (
             <div className="space-y-4">
               {changes.map((change) => (
-                <div key={change.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50">
-                  <div className="flex items-start gap-3">
-                    {getChangeIcon(change.type)}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">
-                          {change.title}
-                        </h4>
-                        <Badge variant="outline" className="text-xs">
-                          {getChangeTypeLabel(change.type)}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {change.description}
-                      </p>
-                      {change.files.length > 0 && (
-                        <div className="text-xs text-gray-500 dark:text-gray-500">
-                          Modified: {change.files.join(', ')}
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        {new Date(change.timestamp).toLocaleDateString()} at {new Date(change.timestamp).toLocaleTimeString()}
-                      </div>
+                <SettingsSectionCard
+                  key={change.id}
+                  icon={getChangeIcon(change.type)}
+                  heading={(
+                    <span className="flex items-center gap-2">
+                      <span>{change.title}</span>
+                      <Badge variant="outline" className="text-[0.65rem] uppercase tracking-wide">
+                        {getChangeTypeLabel(change.type)}
+                      </Badge>
+                    </span>
+                  )}
+                  description={`Published ${new Date(change.timestamp).toLocaleDateString()} at ${new Date(change.timestamp).toLocaleTimeString()}`}
+                  contentClassName="space-y-3"
+                >
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {change.description}
+                  </p>
+                  {change.files.length > 0 && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Modified: {change.files.join(', ')}
                     </div>
-                  </div>
-                </div>
+                  )}
+                </SettingsSectionCard>
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Welcome to Version {currentVersion}!
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Your app has been updated with the latest improvements and features.
-              </p>
-            </div>
+            <InfoBanner variant="info" className="flex-col items-start gap-3 text-left">
+              <InfoBannerIcon>
+                <Sparkles className="h-5 w-5" />
+              </InfoBannerIcon>
+              <InfoBannerContent>
+                <InfoBannerTitle variant="info">Welcome to Version {currentVersion}!</InfoBannerTitle>
+                <InfoBannerDescription variant="info">
+                  Your app has been refreshed with the latest improvements and features. Keep an eye on future updates—more enhancements are on the way.
+                </InfoBannerDescription>
+              </InfoBannerContent>
+            </InfoBanner>
           )}
         </ScrollArea>
 

@@ -41,13 +41,17 @@ interface SettingsModalProps {
   open: boolean;
   /** Callback when modal open state changes */
   onOpenChange: (open: boolean) => void;
+  /** Currently selected tab */
+  activeTab?: string;
+  /** Callback when the selected tab changes */
+  onTabChange?: (tab: string) => void;
 }
 
 /**
  * Main settings modal component with tabbed interface
  * Integrates all application configuration options in one place
  */
-const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
+const SettingsModal = ({ open, onOpenChange, activeTab = 'calendars', onTabChange }: SettingsModalProps) => {
   // Context hooks for settings management
   const { 
     theme, 
@@ -58,7 +62,7 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
     setKeepScreenAwake,
   } = useSettings();
   
-  const { handleThemeChange, versionInfo } = useSettingsModal();
+  const { handleThemeChange } = useSettingsModal();
 
   /**
    * Handle theme changes and apply them immediately
@@ -120,7 +124,7 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
           <SettingsModalHeader onClose={() => onOpenChange(false)} />
 
           {/* Main tabbed interface - responsive grid layout */}
-          <Tabs defaultValue="calendars" className="w-full mt-4 sm:mt-6">
+          <Tabs value={activeTab} onValueChange={(value) => onTabChange?.(value)} className="w-full mt-4 sm:mt-6">
             <SettingsTabNavigation />
 
             <div className="mt-4 sm:mt-6">

@@ -425,8 +425,8 @@ export const useICalCalendars = () => {
       url: trimmedUrl,
       color: calendar.color || '#3b82f6',
       enabled: calendar.enabled !== undefined ? calendar.enabled : true,
-  eventCount: 0,
-  syncFrequencyPerDay: (calendar as any).syncFrequencyPerDay || 0
+      eventCount: 0,
+      syncFrequencyPerDay: calendar.syncFrequencyPerDay ?? 0,
     };
     
     try {
@@ -756,11 +756,11 @@ export const useICalCalendars = () => {
   // Auto-sync scheduler: sets timeouts per calendar based on frequency
   useEffect(() => {
     // Clear existing timers stored on window to avoid duplication
-    const globalAny = window as any;
-    if (!globalAny.__icalAutoSyncTimers) {
-      globalAny.__icalAutoSyncTimers = new Map<string, number>();
+    const timerWindow = window as Window & { __icalAutoSyncTimers?: Map<string, number> };
+    if (!timerWindow.__icalAutoSyncTimers) {
+      timerWindow.__icalAutoSyncTimers = new Map<string, number>();
     }
-    const timers: Map<string, number> = globalAny.__icalAutoSyncTimers;
+    const timers = timerWindow.__icalAutoSyncTimers;
     // Clear timers for calendars that no longer exist or frequency changed to 0
     timers.forEach((timeoutId, calId) => {
       const calendar = calendars.find(c => c.id === calId);

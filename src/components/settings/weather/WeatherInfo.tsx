@@ -1,18 +1,21 @@
 
 import React from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info } from 'lucide-react';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon } from '@/components/ui/info-banner';
 
 const WeatherInfo = () => {
   return (
     <div className="space-y-4">
-      <Alert className="bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800">
-        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertDescription className="text-blue-700 dark:text-blue-300">
-          Weather data is provided by the National Weather Service API. The app displays current conditions 
-          and forecasts including temperature and weather icons in calendar views.
-        </AlertDescription>
-      </Alert>
+      <InfoBanner variant="info">
+        <InfoBannerIcon>
+          <Info className="h-5 w-5" />
+        </InfoBannerIcon>
+        <InfoBannerContent>
+          <InfoBannerDescription variant="info">
+            Weather data is provided by the National Weather Service API. The app displays current conditions and forecasts including temperature and weather icons in calendar views.
+          </InfoBannerDescription>
+        </InfoBannerContent>
+      </InfoBanner>
 
       <div className="text-sm text-gray-600 dark:text-gray-400">
         <p className="font-medium mb-2 text-gray-900 dark:text-gray-100">Weather features:</p>

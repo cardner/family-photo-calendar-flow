@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useICalCalendars } from '@/hooks/useICalCalendars';
 import { useCalendarSelection } from '@/hooks/useCalendarSelection';
 import { Calendar, Plus, RotateCcw, BarChart3, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 import EditableCalendarCard from './EditableCalendarCard';
 import { ICalCalendar } from '@/types/ical';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 const CALENDAR_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#ec4899'];
 
@@ -41,7 +40,6 @@ const ICalSettings = ({
     forceRefresh
   } = useCalendarSelection();
 
-  // Use props if provided, otherwise use hook values
   const selectedCalendarIds = propSelectedCalendarIds || hookSelectedCalendarIds;
   const toggleCalendar = propOnToggleSelection || hookToggleCalendar;
   const { toast } = useToast();
@@ -50,17 +48,12 @@ const ICalSettings = ({
     name: '',
     url: '',
     color: CALENDAR_COLORS[0],
-  enabled: true,
-  syncFrequencyPerDay: 0
+    enabled: true,
+    syncFrequencyPerDay: 0
   });
 
-  // Debug logging for calendar state
-  useEffect(() => {
-    // debug removed: iCal settings state snapshot
-  }, [calendars, calendarsFromEvents, selectedCalendarIds]);
-
   // Filter calendars to only show iCal/ICS feeds (exclude Notion calendars)
-  const iCalOnlyCalendars = React.useMemo(() => {
+  const iCalOnlyCalendars = useMemo(() => {
     const calendarMap = new Map<string, ICalCalendar>();
 
     // Only add calendars from IndexedDB that have URLs (are actual iCal feeds)
@@ -179,8 +172,8 @@ const ICalSettings = ({
         name: '',
         url: '',
         color: CALENDAR_COLORS[0],
-  enabled: true,
-  syncFrequencyPerDay: 0
+        enabled: true,
+        syncFrequencyPerDay: 0
       });
       setShowAddDialog(false);
     } catch (error) {
@@ -280,190 +273,183 @@ const ICalSettings = ({
     .length;
 
   return (
-    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-              <Calendar className="h-5 w-5" />
-              Calendar Feeds
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
-              Add external calendar feeds using iCal/ICS URLs. Does not include Notion calendars.
-            </CardDescription>
-          </div>
-          {iCalOnlyCalendars.length > 0 && (
-            <Button
-              onClick={handleSyncAll}
-              disabled={isLoading || enabledCalendarsCount === 0}
-              variant="outline"
-              size="sm"
-              className="ml-4 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-            >
-              <RotateCcw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Sync All ({enabledCalendarsCount})
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Event Summary */}
-        {totalEvents > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="font-medium text-blue-900 dark:text-blue-200">iCal Feed Summary</span>
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-sm">
+    <SettingsSectionCard
+      heading={(
+        <span className="flex items-center gap-2">
+          <Calendar className="h-5 w-5" />
+          Calendar Feeds
+        </span>
+      )}
+      description="Add external calendar feeds using iCal/ICS URLs. Does not include Notion calendars."
+      actions={iCalOnlyCalendars.length > 0 ? (
+        <Button
+          onClick={handleSyncAll}
+          disabled={isLoading || enabledCalendarsCount === 0}
+          variant="outline"
+          size="sm"
+          className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+        >
+          <RotateCcw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Sync All ({enabledCalendarsCount})
+        </Button>
+      ) : undefined}
+      contentClassName="space-y-4"
+    >
+      {totalEvents > 0 && (
+        <InfoBanner variant="info">
+          <InfoBannerIcon>
+            <BarChart3 className="h-5 w-5" />
+          </InfoBannerIcon>
+          <InfoBannerContent>
+            <InfoBannerTitle variant="info">iCal feed summary</InfoBannerTitle>
+            <div className="grid grid-cols-3 gap-4 text-sm text-blue-900 dark:text-blue-100">
               <div>
-                <div className="font-medium text-blue-900 dark:text-blue-200">{totalEvents}</div>
-                <div className="text-blue-700 dark:text-blue-300">Total Events</div>
+                <span className="block font-medium">{totalEvents}</span>
+                <span className="text-blue-700 dark:text-blue-300">Total events</span>
               </div>
               <div>
-                <div className="font-medium text-blue-900 dark:text-blue-200">{calendarsWithEventsCount}</div>
-                <div className="text-blue-700 dark:text-blue-300">Active Calendars</div>
+                <span className="block font-medium">{calendarsWithEventsCount}</span>
+                <span className="text-blue-700 dark:text-blue-300">Active calendars</span>
               </div>
               <div>
-                <div className="font-medium text-blue-900 dark:text-blue-200">{selectedCalendarIds.filter(id => !id.startsWith('notion_') && !id.includes('scraped')).length}</div>
-                <div className="text-blue-700 dark:text-blue-300">Selected</div>
+                <span className="block font-medium">{selectedCalendarIds.filter(id => !id.startsWith('notion_') && !id.includes('scraped')).length}</span>
+                <span className="text-blue-700 dark:text-blue-300">Selected</span>
               </div>
             </div>
-          </div>
-        )}
+          </InfoBannerContent>
+        </InfoBanner>
+      )}
 
-        {/* Add Calendar Button */}
-        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-          <DialogTrigger asChild>
-            <Button className="w-full bg-gray-700 hover:bg-gray-600 dark:bg-slate-900 dark:hover:bg-slate-800 text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Calendar Feed
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="text-gray-900 dark:text-gray-100">Add Calendar Feed</DialogTitle>
-              <DialogDescription className="text-gray-600 dark:text-gray-400">
-                Enter the details for your calendar feed. Data will be stored locally in your browser.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="calendar-name" className="text-gray-700 dark:text-gray-300">Calendar Name</Label>
-                <Input
-                  id="calendar-name"
-                  placeholder="My Calendar"
-                  value={newCalendar.name}
-                  onChange={(e) => setNewCalendar(prev => ({ ...prev, name: e.target.value }))}
-                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-                />
-              </div>
-              <div>
-                <Label htmlFor="calendar-url" className="text-gray-700 dark:text-gray-300">iCal URL</Label>
-                <Input
-                  id="calendar-url"
-                  placeholder="https://calendar.example.com/feed.ics"
-                  value={newCalendar.url}
-                  onChange={(e) => setNewCalendar(prev => ({ ...prev, url: e.target.value }))}
-                  className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
-                />
-              </div>
-              <div>
-                <Label className="text-gray-700 dark:text-gray-300">Calendar Color</Label>
-                <div className="flex gap-2 mt-2">
-                  {CALENDAR_COLORS.map(color => (
-                    <button
-                      key={color}
-                      className={`w-6 h-6 rounded-full border-2 ${
-                        newCalendar.color === color ? 'border-gray-900 dark:border-gray-100' : 'border-gray-300 dark:border-gray-600'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setNewCalendar(prev => ({ ...prev, color }))}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <div className="flex-1">
-                  <Label className="text-gray-700 dark:text-gray-300">Auto Sync (per day)</Label>
-                  <select
-                    value={newCalendar.syncFrequencyPerDay}
-                    onChange={(e) => setNewCalendar(prev => ({ ...prev, syncFrequencyPerDay: Number(e.target.value) }))}
-                    className="mt-1 w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
-                  >
-                    <option value={0}>Manual only</option>
-                    <option value={1}>1 / day</option>
-                    <option value={2}>2 / day (12h)</option>
-                    <option value={4}>4 / day (6h)</option>
-                    <option value={6}>6 / day (4h)</option>
-                    <option value={8}>8 / day (3h)</option>
-                    <option value={12}>12 / day (2h)</option>
-                    <option value={24}>24 / day (hourly)</option>
-                  </select>
-                </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddDialog(false)}
-                  className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleAddCalendar}
-                  disabled={isLoading}
-                  className="bg-gray-600 hover:bg-gray-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
-                >
-                  Add Calendar
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Calendar List */}
-        {iCalOnlyCalendars.length > 0 && (
-          <div className="space-y-3">
-            {iCalOnlyCalendars.map(calendar => (
-              <EditableCalendarCard
-                key={calendar.id}
-                calendar={calendar}
-                isSelected={selectedCalendarIds.includes(calendar.id)}
-                syncStatus={syncStatus[calendar.id] || ''}
-                onUpdate={handleUpdateCalendar}
-                onSync={handleSync}
-                onRemove={handleRemove}
-                onToggleSelection={(calendarId: string, selected: boolean) => {
-                  // debug removed: toggle selection
-                  toggleCalendar(calendarId, selected);
-                }}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogTrigger asChild>
+          <Button className="w-full bg-gray-700 hover:bg-gray-600 dark:bg-slate-900 dark:hover:bg-slate-800 text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Calendar Feed
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-gray-900 dark:text-gray-100">Add Calendar Feed</DialogTitle>
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              Enter the details for your calendar feed. Data will be stored locally in your browser.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="calendar-name" className="text-gray-700 dark:text-gray-300">Calendar Name</Label>
+              <Input
+                id="calendar-name"
+                placeholder="My Calendar"
+                value={newCalendar.name}
+                onChange={(e) => setNewCalendar(prev => ({ ...prev, name: e.target.value }))}
+                className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
               />
-            ))}
+            </div>
+            <div>
+              <Label htmlFor="calendar-url" className="text-gray-700 dark:text-gray-300">iCal URL</Label>
+              <Input
+                id="calendar-url"
+                placeholder="https://calendar.example.com/feed.ics"
+                value={newCalendar.url}
+                onChange={(e) => setNewCalendar(prev => ({ ...prev, url: e.target.value }))}
+                className="bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <Label className="text-gray-700 dark:text-gray-300">Calendar Color</Label>
+              <div className="flex gap-2 mt-2">
+                {CALENDAR_COLORS.map(color => (
+                  <button
+                    key={color}
+                    className={`w-6 h-6 rounded-full border-2 ${
+                      newCalendar.color === color ? 'border-gray-900 dark:border-gray-100' : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setNewCalendar(prev => ({ ...prev, color }))}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Label className="text-gray-700 dark:text-gray-300">Auto Sync (per day)</Label>
+                <select
+                  value={newCalendar.syncFrequencyPerDay}
+                  onChange={(e) => setNewCalendar(prev => ({ ...prev, syncFrequencyPerDay: Number(e.target.value) }))}
+                  className="mt-1 w-full h-10 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none"
+                >
+                  <option value={0}>Manual only</option>
+                  <option value={1}>1 / day</option>
+                  <option value={2}>2 / day (12h)</option>
+                  <option value={4}>4 / day (6h)</option>
+                  <option value={6}>6 / day (4h)</option>
+                  <option value={8}>8 / day (3h)</option>
+                  <option value={12}>12 / day (2h)</option>
+                  <option value={24}>24 / day (hourly)</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowAddDialog(false)}
+                className="border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAddCalendar}
+                disabled={isLoading}
+                className="bg-gray-600 hover:bg-gray-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white"
+              >
+                Add Calendar
+              </Button>
+            </div>
           </div>
-        )}
+        </DialogContent>
+      </Dialog>
 
-        {iCalOnlyCalendars.length === 0 && (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No iCal calendar feeds added yet.</p>
-            <p className="text-sm">Add your first calendar feed to get started.</p>
-          </div>
-        )}
+      {iCalOnlyCalendars.length > 0 ? (
+        <div className="space-y-3">
+          {iCalOnlyCalendars.map(calendar => (
+            <EditableCalendarCard
+              key={calendar.id}
+              calendar={calendar}
+              isSelected={selectedCalendarIds.includes(calendar.id)}
+              syncStatus={syncStatus[calendar.id] || ''}
+              onUpdate={handleUpdateCalendar}
+              onSync={handleSync}
+              onRemove={handleRemove}
+              onToggleSelection={(calendarId: string, selected: boolean) => {
+                toggleCalendar(calendarId, selected);
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+          <p>No iCal calendar feeds added yet.</p>
+          <p className="text-sm">Add your first calendar feed to get started.</p>
+        </div>
+      )}
 
-        {/* Help and Tips */}
-        <Alert className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-          <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <AlertTitle className="text-blue-900 dark:text-blue-200">Tips for Calendar Feeds</AlertTitle>
-          <AlertDescription className="text-sm space-y-2 text-blue-700 dark:text-blue-300">
-            <p>• Calendar data is stored locally in your browser using IndexedDB</p>
-            <p>• Click the edit icon to modify calendar name, URL, or color</p>
-            <p>• Use the sync buttons to manually refresh calendar data</p>
-            <p>• Look for "Export" or "Share" options in your calendar application</p>
-            <p>• Typical feed URLs end with .ics, include /ical/ in the path, or use format=ical</p>
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
+      <InfoBanner variant="info">
+        <InfoBannerIcon>
+          <AlertCircle className="h-5 w-5" />
+        </InfoBannerIcon>
+        <InfoBannerContent>
+          <InfoBannerTitle variant="info">Tips for calendar feeds</InfoBannerTitle>
+          <InfoBannerDescription variant="info" className="space-y-1 text-sm">
+            <p>• Calendar data is stored locally in your browser using IndexedDB.</p>
+            <p>• Click the edit icon to modify calendar name, URL, or color.</p>
+            <p>• Use the sync buttons to manually refresh calendar data.</p>
+            <p>• Look for "Export" or "Share" options in your calendar application.</p>
+            <p>• Typical feed URLs end with .ics, include /ical/ in the path, or use format=ical.</p>
+          </InfoBannerDescription>
+        </InfoBannerContent>
+      </InfoBanner>
+    </SettingsSectionCard>
   );
 };
 

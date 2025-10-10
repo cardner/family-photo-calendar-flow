@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/contexts/settings/SettingsContext';
 import { Loader2, CheckCircle, AlertCircle, TestTube, Shield, Users, Database, ExternalLink } from 'lucide-react';
@@ -245,23 +245,30 @@ const NotionIntegrationForm = ({ onIntegrationComplete }: NotionIntegrationFormP
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Setup Instructions */}
-        <Alert className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-          <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          <AlertTitle className="text-blue-900 dark:text-blue-200">Setup Required</AlertTitle>
-          <AlertDescription className="text-sm space-y-2 text-blue-700 dark:text-blue-300">
-            <p>To connect Notion, you'll need:</p>
-            <div className="space-y-1">
-              <p>1. Create an internal integration at <Button variant="link" className="p-0 h-auto text-blue-600 dark:text-blue-400" asChild>
-                <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer">
-                  Notion Integrations <ExternalLink className="h-3 w-3 ml-1 inline" />
-                </a>
-              </Button></p>
-              <p>2. Copy the integration token (starts with "ntn_")</p>
-              <p>3. Share your database with the integration</p>
-              <p>4. Get the database ID from the database URL</p>
-            </div>
-          </AlertDescription>
-        </Alert>
+        <InfoBanner variant="info">
+          <InfoBannerIcon>
+            <Shield className="h-5 w-5" />
+          </InfoBannerIcon>
+          <InfoBannerContent>
+            <InfoBannerTitle variant="info">Setup required</InfoBannerTitle>
+            <InfoBannerDescription variant="info" className="space-y-2 text-sm">
+              <p>To connect Notion, you'll need:</p>
+              <div className="space-y-1">
+                <p>
+                  1. Create an internal integration at{' '}
+                  <Button variant="link" className="p-0 h-auto text-blue-600 dark:text-blue-400" asChild>
+                    <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer">
+                      Notion Integrations <ExternalLink className="h-3 w-3 ml-1 inline" />
+                    </a>
+                  </Button>
+                </p>
+                <p>2. Copy the integration token (starts with "ntn_")</p>
+                <p>3. Share your database with the integration</p>
+                <p>4. Get the database ID from the database URL</p>
+              </div>
+            </InfoBannerDescription>
+          </InfoBannerContent>
+        </InfoBanner>
 
         {/* Token Input */}
         <div className="space-y-3">
@@ -298,22 +305,24 @@ const NotionIntegrationForm = ({ onIntegrationComplete }: NotionIntegrationFormP
           </Button>
 
           {tokenValidation.status === 'success' && tokenValidation.integrationInfo && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium text-green-900 dark:text-green-200">Integration Connected</span>
-              </div>
-              <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                <p><strong>Name:</strong> {tokenValidation.integrationInfo.name}</p>
-                {tokenValidation.integrationInfo.workspace && (
-                  <p><strong>Workspace:</strong> {tokenValidation.integrationInfo.workspace.name}</p>
-                )}
-                <div className="flex items-center gap-1">
-                  <Users className="h-3 w-3" />
-                  <span>Type: {tokenValidation.integrationInfo.type}</span>
-                </div>
-              </div>
-            </div>
+            <InfoBanner variant="success">
+              <InfoBannerIcon>
+                <CheckCircle className="h-5 w-5" />
+              </InfoBannerIcon>
+              <InfoBannerContent>
+                <InfoBannerTitle variant="success">Integration connected</InfoBannerTitle>
+                <InfoBannerDescription variant="success" className="space-y-1 text-sm">
+                  <p><strong>Name:</strong> {tokenValidation.integrationInfo.name}</p>
+                  {tokenValidation.integrationInfo.workspace && (
+                    <p><strong>Workspace:</strong> {tokenValidation.integrationInfo.workspace.name}</p>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    <span>Type: {tokenValidation.integrationInfo.type}</span>
+                  </div>
+                </InfoBannerDescription>
+              </InfoBannerContent>
+            </InfoBanner>
           )}
         </div>
 

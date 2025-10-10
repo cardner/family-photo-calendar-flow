@@ -2,6 +2,9 @@
 import React from 'react';
 import NotionScrapedSettings from './NotionScrapedSettings';
 import { useCalendarSelection } from '@/hooks/useCalendarSelection';
+import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
+import { Calendar as CalendarIcon, Blocks } from 'lucide-react';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 interface NotionIntegrationProps {
   selectedCalendarIds?: string[];
@@ -26,31 +29,41 @@ const NotionIntegration = ({
   return (
     <div className="space-y-6">
       {/* Notion API Integration */}
-      <div>
-        <h3 className="text-lg font-medium mb-2">Notion API Integration</h3>
-        <p className="text-sm text-gray-600 mb-4">
-          Connect directly to Notion databases using the API for automatic syncing
-        </p>
+      <SettingsSectionCard
+        heading={(
+          <span className="flex items-center gap-2">
+            <Blocks className="h-5 w-5" />
+            Notion API Integration
+          </span>
+        )}
+        description="Connect directly to Notion databases using the API for automatic syncing"
+        contentClassName="space-y-4"
+      >
         <NotionScrapedSettings 
           selectedCalendarIds={selectedCalendarIds}
           onToggleSelection={toggleCalendar}
         />
-      </div>
+      </SettingsSectionCard>
 
       {/* Integration Stats */}
-      <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
-        <h4 className="font-medium mb-2">Integration Summary</h4>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-500">API Events:</span>
-            <span className="ml-2 font-medium">{scrapedEvents.length}</span>
+      <InfoBanner variant="info">
+        <InfoBannerIcon>
+          <CalendarIcon className="h-5 w-5" />
+        </InfoBannerIcon>
+        <InfoBannerContent>
+          <InfoBannerTitle variant="info">Integration summary</InfoBannerTitle>
+          <div className="grid grid-cols-2 gap-4 text-sm text-blue-900 dark:text-blue-100">
+            <div>
+              <span className="text-blue-700 dark:text-blue-200">API Events:</span>
+              <span className="ml-2 font-medium">{scrapedEvents.length}</span>
+            </div>
+            <div>
+              <span className="text-blue-700 dark:text-blue-200">Selected Calendars:</span>
+              <span className="ml-2 font-medium">{selectedCalendarIds.length}</span>
+            </div>
           </div>
-          <div>
-            <span className="text-gray-500">Selected Calendars:</span>
-            <span className="ml-2 font-medium">{selectedCalendarIds.length}</span>
-          </div>
-        </div>
-      </div>
+        </InfoBannerContent>
+      </InfoBanner>
     </div>
   );
 };

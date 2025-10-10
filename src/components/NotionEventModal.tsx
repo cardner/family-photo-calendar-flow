@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { Calendar, Clock, MapPin, ExternalLink, Tag, Flag, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, ExternalLink, Tag, Flag, AlertCircle, ChevronDown, ChevronRight, Database } from 'lucide-react';
 import { NotionScrapedEvent } from '@/services/NotionPageScraper';
 import { formatNotionProperty, extractIngredientsFromArray, extractNotesFromArray } from '@/utils/notionPropertyFormatter';
+import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 interface NotionEventModalProps {
   open: boolean;
@@ -94,137 +95,183 @@ const NotionEventModal = ({ open, onOpenChange, event }: NotionEventModalProps) 
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Status and Priority */}
-          <div className="flex flex-wrap gap-2">
-            {event.status && (
-              <Badge className={getStatusColor(event.status)}>
-                <AlertCircle className="h-3 w-3 mr-1" />
-                {event.status}
-              </Badge>
+        <div className="space-y-4">
+          <SettingsSectionCard
+            heading={(
+              <span className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Event Overview
+              </span>
             )}
-            {event.priority && (
-              <Badge className={getPriorityColor(event.priority)}>
-                <Flag className="h-3 w-3 mr-1" />
-                {event.priority} Priority
-              </Badge>
+            description="Key details synced from your Notion page"
+            contentClassName="space-y-5"
+          >
+            {/* Status and Priority */}
+            <div className="flex flex-wrap gap-2">
+              {event.status && (
+                <Badge className={getStatusColor(event.status)}>
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  {event.status}
+                </Badge>
+              )}
+              {event.priority && (
+                <Badge className={getPriorityColor(event.priority)}>
+                  <Flag className="h-3 w-3 mr-1" />
+                  {event.priority} Priority
+                </Badge>
+              )}
+            </div>
+
+            {/* Location */}
+            {event.location && (
+              <div className="space-y-2">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Location
+                </h3>
+                <p className="text-gray-700 dark:text-gray-300">{event.location}</p>
+              </div>
             )}
-          </div>
 
-          {/* Location */}
-          {event.location && (
-            <div className="space-y-2">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Location
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 ml-6">{event.location}</p>
-            </div>
-          )}
-
-          {/* Description */}
-          {event.description && (
-            <div className="space-y-2">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">Description</h3>
-              <div className="text-gray-700 dark:text-gray-300">
-                {event.description.split('\n').map((section, index) => {
-                  // Check if this section contains ingredients (bulleted list)
-                  if (section.toLowerCase().includes('ingredients:')) {
-                    const ingredientMatch = section.match(/ingredients:\s*(.*)/i);
-                    if (ingredientMatch) {
-                      const ingredients = ingredientMatch[1].split(',').map(item => item.trim()).filter(Boolean);
-                      return (
-                        <div key={index} className="mb-4">
-                          <p className="font-medium mb-2">Ingredients:</p>
-                          <ul className="list-disc pl-6 space-y-1">
-                            {ingredients.map((ingredient, i) => (
-                              <li key={i}>{ingredient}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      );
+            {/* Description */}
+            {event.description && (
+              <div className="space-y-2">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Description</h3>
+                <div className="text-gray-700 dark:text-gray-300 space-y-3">
+                  {event.description.split('\n').map((section, index) => {
+                    // Check if this section contains ingredients (bulleted list)
+                    if (section.toLowerCase().includes('ingredients:')) {
+                      const ingredientMatch = section.match(/ingredients:\s*(.*)/i);
+                      if (ingredientMatch) {
+                        const ingredients = ingredientMatch[1].split(',').map(item => item.trim()).filter(Boolean);
+                        return (
+                          <div key={index} className="space-y-2">
+                            <p className="font-medium">Ingredients:</p>
+                            <ul className="list-disc pl-6 space-y-1">
+                              {ingredients.map((ingredient, i) => (
+                                <li key={i}>{ingredient}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      }
                     }
-                  }
-                  
-                  // Check if this section contains notes with potential links
-                  if (section.toLowerCase().includes('notes:')) {
-                    const noteMatch = section.match(/notes:\s*(.*)/i);
-                    if (noteMatch) {
-                      const noteContent = noteMatch[1];
-                      // Simple URL detection
-                      const urlRegex = /(https?:\/\/[^\s]+)/g;
-                      const parts = noteContent.split(urlRegex);
-                      
-                      return (
-                        <div key={index} className="mb-4">
-                          <p className="font-medium mb-2">Notes:</p>
-                          <p>
-                            {parts.map((part, i) => {
-                              if (urlRegex.test(part)) {
-                                return (
-                                  <a 
-                                    key={i} 
-                                    href={part} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-200"
-                                  >
-                                    {part}
-                                  </a>
-                                );
-                              }
-                              return part;
-                            })}
-                          </p>
-                        </div>
-                      );
+                    
+                    // Check if this section contains notes with potential links
+                    if (section.toLowerCase().includes('notes:')) {
+                      const noteMatch = section.match(/notes:\s*(.*)/i);
+                      if (noteMatch) {
+                        const noteContent = noteMatch[1];
+                        // Simple URL detection
+                        const urlRegex = /(https?:\/\/[^\s]+)/g;
+                        const parts = noteContent.split(urlRegex);
+                        
+                        return (
+                          <div key={index} className="space-y-2">
+                            <p className="font-medium">Notes:</p>
+                            <div className="space-y-1">
+                              {parts.map((part, i) => {
+                                if (urlRegex.test(part)) {
+                                  return (
+                                    <a 
+                                      key={i} 
+                                      href={part} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-200"
+                                    >
+                                      {part}
+                                    </a>
+                                  );
+                                }
+                                return <span key={i}>{part}</span>;
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
                     }
-                  }
-                  
-                  // Regular text sections
-                  return section.trim() ? (
-                    <p key={index} className="mb-2 whitespace-pre-wrap">{section}</p>
-                  ) : null;
-                })}
+                    
+                    // Regular text sections
+                    return section.trim() ? (
+                      <p key={index} className="whitespace-pre-wrap">{section}</p>
+                    ) : null;
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Categories */}
-          {event.categories && event.categories.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Categories
-              </h3>
-              <div className="flex flex-wrap gap-2 ml-6">
-                {event.categories.map((category, index) => (
-                  <Badge key={index} variant="secondary">
-                    {category}
-                  </Badge>
-                ))}
+            {/* Categories */}
+            {event.categories && event.categories.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  Categories
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {event.categories.map((category, index) => (
+                    <Badge key={index} variant="secondary">
+                      {category}
+                    </Badge>
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Date Range */}
+            {event.dateRange && event.dateRange.endDate && (
+              <div className="space-y-1">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">Duration</h3>
+                <p className="text-gray-700 dark:text-gray-300">
+                  {formatDate(event.dateRange.startDate)} - {formatDate(event.dateRange.endDate)}
+                </p>
+              </div>
+            )}
+
+            {/* Metadata */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Last synced: {event.scrapedAt.toLocaleString()}
+              </p>
             </div>
-          )}
+          </SettingsSectionCard>
 
           {/* Database Properties */}
           {event.properties && Object.keys(event.properties).length > 0 && (
             <Collapsible open={isDatabasePropsOpen} onOpenChange={setIsDatabasePropsOpen}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-md transition-colors">
-                {isDatabasePropsOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                <h3 className="font-medium text-gray-900 dark:text-gray-100">Database Properties</h3>
-                <span className="text-sm text-gray-500 dark:text-gray-400">({Object.keys(event.properties).length} properties)</span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2">
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 ml-6 space-y-4">
-                  {Object.entries(event.properties).map(([key, property]) => {
+              <SettingsSectionCard
+                heading={(
+                  <span className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Database Properties
+                  </span>
+                )}
+                description={`${Object.keys(event.properties).length} properties available`}
+                actions={(
+                  <CollapsibleTrigger className="inline-flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    {isDatabasePropsOpen ? (
+                      <>
+                        <ChevronDown className="h-3 w-3" /> Hide
+                      </>
+                    ) : (
+                      <>
+                        <ChevronRight className="h-3 w-3" /> Show
+                      </>
+                    )}
+                  </CollapsibleTrigger>
+                )}
+                contentClassName="space-y-4"
+              >
+                <CollapsibleContent className="space-y-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4">
+                  {Object.entries(event.properties).map(([key, propertyValue]) => {
+                    const property = propertyValue as unknown;
                     const keyLower = key.toLowerCase();
-                    
+
                     // Special handling for ingredients
-                    if (keyLower.includes('ingredient') && property.type === 'array') {
-                      const ingredients = extractIngredientsFromArray(property);
+                    if (keyLower.includes('ingredient') && (property as { type?: string }).type === 'array') {
+                      const ingredients = extractIngredientsFromArray(property as Parameters<typeof extractIngredientsFromArray>[0]);
                       if (ingredients.length === 0) return null;
-                      
+
                       return (
                         <div key={key} className="space-y-2">
                           <span className="font-medium text-gray-600 dark:text-gray-400 capitalize block">
@@ -240,12 +287,12 @@ const NotionEventModal = ({ open, onOpenChange, event }: NotionEventModalProps) 
                         </div>
                       );
                     }
-                    
+
                     // Special handling for notes
-                    if (keyLower.includes('note') && property.type === 'array') {
-                      const notes = extractNotesFromArray(property);
+                    if (keyLower.includes('note') && (property as { type?: string }).type === 'array') {
+                      const notes = extractNotesFromArray(property as Parameters<typeof extractNotesFromArray>[0]);
                       if (notes.length === 0) return null;
-                      
+
                       return (
                         <div key={key} className="space-y-2">
                           <span className="font-medium text-gray-600 dark:text-gray-400 capitalize block">
@@ -255,63 +302,45 @@ const NotionEventModal = ({ open, onOpenChange, event }: NotionEventModalProps) 
                             {notes.map((note, index) => {
                               if (note.type === 'url') {
                                 return (
-                                  <a 
+                                  <a
                                     key={index}
-                                    href={note.content} 
-                                    target="_blank" 
+                                    href={note.content}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-200 block"
                                   >
                                     {note.content}
                                   </a>
                                 );
-                              } else {
-                                return (
-                                  <p key={index}>{note.content}</p>
-                                );
                               }
+                              return (
+                                <p key={index}>{note.content}</p>
+                              );
                             })}
                           </div>
                         </div>
                       );
                     }
-                    
+
                     // Regular property formatting
-                    const value = formatNotionProperty(property);
+                    const value = formatNotionProperty(property as Parameters<typeof formatNotionProperty>[0]);
                     if (!value) return null;
-                    
+
                     return (
-                      <div key={key} className="flex justify-between items-start py-1">
+                      <div key={key} className="flex justify-between items-start gap-4 py-1">
                         <span className="font-medium text-gray-600 dark:text-gray-400 capitalize">
                           {key}:
                         </span>
-                        <span className="text-gray-800 dark:text-gray-200 ml-4 text-right max-w-xs break-words">
+                        <span className="text-gray-800 dark:text-gray-200 text-right max-w-xs break-words">
                           {value}
                         </span>
                       </div>
                     );
                   })}
-                </div>
-              </CollapsibleContent>
+                </CollapsibleContent>
+              </SettingsSectionCard>
             </Collapsible>
           )}
-
-          {/* Date Range */}
-          {event.dateRange && event.dateRange.endDate && (
-            <div className="space-y-2">
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">Duration</h3>
-              <p className="text-gray-700 dark:text-gray-300 ml-6">
-                {formatDate(event.dateRange.startDate)} - {formatDate(event.dateRange.endDate)}
-              </p>
-            </div>
-          )}
-
-          {/* Metadata */}
-          <div className="border-t pt-4 mt-6">
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Last synced: {event.scrapedAt.toLocaleString()}
-            </p>
-          </div>
         </div>
       </DialogContent>
     </Dialog>
