@@ -173,6 +173,7 @@ In the GitHub repository UI:
 
 Add a DNS CNAME record:
 
+
 ```text
 calendar  CNAME  <your-username>.github.io
 ```
