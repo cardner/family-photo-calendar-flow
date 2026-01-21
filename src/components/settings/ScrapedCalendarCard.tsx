@@ -16,6 +16,7 @@ export interface ScrapedCalendarData {
   lastSync?: string;
   type: 'notion-scraped';
   syncFrequencyPerDay?: number;
+  connectionMode?: 'api' | 'public';
 }
 
 interface ScrapedCalendarCardProps {
@@ -93,6 +94,11 @@ const ScrapedCalendarCard = ({
             <Badge variant={calendar.enabled ? "default" : "secondary"}>
               {calendar.enabled ? 'Active' : 'Disabled'}
             </Badge>
+            {calendar.connectionMode && (
+              <Badge variant="outline">
+                {calendar.connectionMode === 'api' ? 'API' : 'Public'}
+              </Badge>
+            )}
             <Badge variant="outline">
               {calendar.eventCount} events
             </Badge>

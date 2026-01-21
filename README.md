@@ -367,10 +367,13 @@ Manual override always possible via Release workflow & re-run of Deploy workflow
 ### Notion Integration (Scraped Calendars)
 
 1. Create a Notion database with event rows (Date / Title fields recommended)
-2. Share the database with the integration token you generate
-3. Add the Notion API key & database ID in Settings → Calendars (encrypted if security enabled)
-4. The app automatically paginates all results (no 100-item cap)
-5. Events appear merged with other sources
+2. Choose a connection mode in Settings → Calendars:
+   - **API (token)**: create an integration, share the database, and paste the token
+   - **Public shared page**: enable “Share to web” and paste the database URL
+3. iOS PWA note: standalone iPad/iPhone WebKit may block direct Notion API calls (CORS). If API mode fails, switch to Public shared page mode.
+4. iOS PWA sync runs in the foreground only; retries resume when the app is active or back online.
+5. The app automatically paginates all results (no 100-item cap)
+6. Events appear merged with other sources
 
 ### Update System (Optional Advanced)
 

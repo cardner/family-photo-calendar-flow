@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 // Replaced with direct Notion API client usage.
 // NOTE: If CORS errors arise in the browser, consider adding a lightweight
 // proxy service or adjusting the NotionAPIClient to use a different proxy.
-import { notionAPIClient } from '@/services/NotionAPIClient';
+import { notionAPIClient, NotionApiError } from '@/services/NotionAPIClient';
 import type { PageObjectResponse, DatabaseObjectResponse } from '@notionhq/client/build/src/api-endpoints';
 import { notionPageScraper } from '@/services/NotionPageScraper';
 import { RateLimiter, createDebounce } from '@/lib/rateLimiter';
@@ -62,6 +62,9 @@ export const useNotionScrapedCalendars = () => {
   // Client-side rate limiter & debouncers
   const notionRateLimiterRef = useState(() => new RateLimiter({ capacity: 4, windowMs: 10_000 }))[0];
   const debouncedSyncRef = useState(() => new Map<string, ReturnType<typeof createDebounce>>())[0];
+  const RETRY_QUEUE_KEY = 'notion_sync_retry_queue';
+  const SETUP_ATTEMPT_KEY = 'notion_setup_last_attempt';
+  const LAST_EDITED_SAFETY_MS = 5 * 60 * 1000;
   
   const { 
     registerBackgroundSync, 
@@ -70,6 +73,41 @@ export const useNotionScrapedCalendars = () => {
     isBackgroundSyncSupported,
     processSyncQueue
   } = useBackgroundSync();
+
+  const buildIncrementalFilter = useCallback((lastSuccessfulSync?: string) => {
+    if (!lastSuccessfulSync) return undefined;
+    const last = new Date(lastSuccessfulSync).getTime();
+    if (Number.isNaN(last)) return undefined;
+    const after = new Date(Math.max(0, last - LAST_EDITED_SAFETY_MS)).toISOString();
+    return {
+      timestamp: 'last_edited_time',
+      last_edited_time: {
+        after
+      }
+    };
+  }, []);
+
+  const recordSetupAttempt = useCallback((payload: { url: string; result: 'success' | 'error'; error?: string; code?: string }) => {
+    try {
+      localStorage.setItem(SETUP_ATTEMPT_KEY, JSON.stringify({
+        ...payload,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.warn('Failed to record Notion setup attempt', error);
+    }
+  }, []);
+
+  const enqueueRetry = useCallback((calendarId: string) => {
+    try {
+      const existing = JSON.parse(localStorage.getItem(RETRY_QUEUE_KEY) || '[]') as string[];
+      if (!existing.includes(calendarId)) {
+        localStorage.setItem(RETRY_QUEUE_KEY, JSON.stringify([...existing, calendarId]));
+      }
+    } catch (error) {
+      console.warn('Failed to enqueue Notion retry', error);
+    }
+  }, []);
 
   // Load calendars from IndexedDB
   const loadCalendars = useCallback(async () => {
@@ -280,12 +318,18 @@ export const useNotionScrapedCalendars = () => {
         return;
       }
     }
-    if (!calendar.metadata?.token) {
-      throw new Error('Notion integration token is required for this calendar');
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new NotionApiError('Offline: connect to the internet and try again.', 'offline');
     }
 
-    if (!calendar.metadata?.databaseId) {
-      throw new Error('Database ID is required for this calendar');
+    if (calendar.connectionMode !== 'public') {
+      if (!calendar.metadata?.token) {
+        throw new Error('Notion integration token is required for this calendar');
+      }
+
+      if (!calendar.metadata?.databaseId) {
+        throw new Error('Database ID is required for this calendar');
+      }
     }
 
   setSyncStatus(prev => ({ ...prev, [calendar.id]: 'syncing' }));
@@ -295,12 +339,43 @@ export const useNotionScrapedCalendars = () => {
     try {
   // debug removed: syncing Notion calendar start
       
-      // Direct Notion API fully paginated query
-      const pages = await notionAPIClient.queryAll(
-        calendar.metadata.databaseId,
-        calendar.metadata.token
-      );
-      const apiEvents: NotionApiEvent[] = transformPages(pages as PageObjectResponse[]);
+      let apiEvents: NotionApiEvent[] = [];
+      if (calendar.connectionMode === 'public') {
+        const scraped = await notionPageScraper.scrapePage(calendar.url);
+        apiEvents = scraped.events.map((event) => ({
+          id: event.id,
+          title: event.title,
+          date: event.date instanceof Date ? event.date.toISOString() : String(event.date),
+          time: event.time,
+          description: event.description,
+          location: event.location,
+          status: event.status,
+          categories: event.categories,
+          priority: event.priority,
+          properties: event.properties as NotionPropertyMap,
+          sourceUrl: event.sourceUrl,
+          scrapedAt: event.scrapedAt instanceof Date ? event.scrapedAt.toISOString() : undefined,
+          endDate: event.dateRange?.endDate ? event.dateRange.endDate.toISOString() : undefined,
+          customProperties: event.customProperties
+        }));
+      } else {
+        // Direct Notion API fully paginated query
+        const incrementalFilter = buildIncrementalFilter(calendar.lastSuccessfulSync);
+        const pages = await notionAPIClient.queryAllWithOptions(
+          calendar.metadata.databaseId!,
+          calendar.metadata.token!,
+          {
+            filter: incrementalFilter,
+            startCursor: calendar.lastSyncCursor,
+            onPage: async (res) => {
+              if (res.next_cursor) {
+                await updateCalendar(calendar.id, { lastSyncCursor: res.next_cursor });
+              }
+            }
+          }
+        );
+        apiEvents = transformPages(pages as PageObjectResponse[]);
+      }
       if (apiEvents.length === 0) {
         console.warn('No events returned from Notion database query');
       }
@@ -433,9 +508,13 @@ export const useNotionScrapedCalendars = () => {
   // debug removed: sync stats summary
 
       // Update calendar metadata
-      const dbMeta = await getDatabaseMetadata(calendar.metadata.databaseId!, calendar.metadata.token!);
+      const dbMeta = calendar.connectionMode === 'public'
+        ? {}
+        : await getDatabaseMetadata(calendar.metadata.databaseId!, calendar.metadata.token!);
       await updateCalendar(calendar.id, {
         lastSync: new Date().toISOString(),
+        lastSuccessfulSync: new Date().toISOString(),
+        lastSyncCursor: undefined,
         eventCount: notionEvents.length,
         metadata: {
           ...calendar.metadata,
@@ -461,6 +540,12 @@ export const useNotionScrapedCalendars = () => {
     } catch (error) {
       console.error('Error syncing calendar:', error);
       setSyncStatus(prev => ({ ...prev, [calendar.id]: 'error' }));
+
+      if (error instanceof NotionApiError) {
+        if (error.code === 'cors_blocked' || error.code === 'network' || error.code === 'timeout') {
+          enqueueRetry(calendar.id);
+        }
+      }
       
       toast({
         title: "Sync Failed",
@@ -473,7 +558,7 @@ export const useNotionScrapedCalendars = () => {
 
       throw error;
     }
-  }, [getDatabaseMetadata, loadEvents, toast, transformPages, updateCalendar]);
+  }, [buildIncrementalFilter, enqueueRetry, getDatabaseMetadata, loadEvents, toast, transformPages, updateCalendar]);
 
   // Public API with rate limiting + per-calendar debounce
   const syncCalendar = useCallback(async (calendar: NotionScrapedCalendar) => {
@@ -494,6 +579,25 @@ export const useNotionScrapedCalendars = () => {
     }
     debounced();
   }, [performSyncCalendar, debouncedSyncRef, notionRateLimiterRef, toast]);
+
+  const drainRetryQueue = useCallback(async () => {
+    let queue: string[] = [];
+    try {
+      queue = JSON.parse(localStorage.getItem(RETRY_QUEUE_KEY) || '[]') as string[];
+      if (!queue.length) return;
+      localStorage.removeItem(RETRY_QUEUE_KEY);
+    } catch (error) {
+      console.warn('Failed to read Notion retry queue', error);
+      return;
+    }
+
+    for (const calendarId of queue) {
+      const calendar = calendars.find(cal => cal.id === calendarId);
+      if (calendar && calendar.enabled) {
+        await syncCalendar(calendar);
+      }
+    }
+  }, [calendars, syncCalendar]);
 
   // Sync all enabled calendars
   const syncAllCalendars = useCallback(async () => {
@@ -541,15 +645,38 @@ export const useNotionScrapedCalendars = () => {
   }, [calendars, notionRateLimiterRef, performSyncCalendar, toast]);
 
   // Validate a Notion integration and database
-  const validateNotionUrl = useCallback(async (url: string, token?: string): Promise<{ isValid: boolean; error?: string }> => {
-    if (!token) return { isValid: false, error: 'Notion integration token is required' };
+  const validateNotionUrl = useCallback(async (
+    url: string,
+    token?: string,
+    connectionMode: 'api' | 'public' = 'api'
+  ): Promise<{ isValid: boolean; error?: string; code?: string }> => {
     const parsed = notionPageScraper.parseNotionUrl(url);
-    if (!parsed) return { isValid: false, error: 'Invalid Notion database URL' };
+    if (!parsed) {
+      recordSetupAttempt({ url, result: 'error', error: 'Invalid Notion database URL', code: 'invalid_url' });
+      return { isValid: false, error: 'Invalid Notion database URL', code: 'invalid_url' };
+    }
+    if (connectionMode === 'public') {
+      recordSetupAttempt({ url, result: 'success' });
+      return { isValid: true };
+    }
+    if (!token) {
+      recordSetupAttempt({ url, result: 'error', error: 'Notion integration token is required', code: 'missing_token' });
+      return { isValid: false, error: 'Notion integration token is required', code: 'missing_token' };
+    }
     try {
+      await notionAPIClient.getIntegrationInfo(token);
       await notionAPIClient.getDatabase(parsed.blockId, token);
+      await notionAPIClient.queryDatabase(parsed.blockId, token, { page_size: 1 });
+      recordSetupAttempt({ url, result: 'success' });
       return { isValid: true };
     } catch (err) {
-      return { isValid: false, error: err instanceof Error ? err.message : 'Validation failed' };
+      let errorMessage = err instanceof Error ? err.message : 'Validation failed';
+      const code = err instanceof NotionApiError ? err.code : 'unknown';
+      if (code === 'cors_blocked') {
+        errorMessage = 'This device blocked the Notion API request (CORS). Switch to Public shared page mode.';
+      }
+      recordSetupAttempt({ url, result: 'error', error: errorMessage, code });
+      return { isValid: false, error: errorMessage, code };
     }
   }, []);
 
@@ -590,6 +717,26 @@ export const useNotionScrapedCalendars = () => {
     loadCalendars();
     loadEvents();
   }, [loadCalendars, loadEvents]);
+
+  // Replay retry queue when app returns to foreground or network is back
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        drainRetryQueue();
+      }
+    };
+    const handleOnline = () => {
+      drainRetryQueue();
+    };
+    window.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handleVisibility);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handleVisibility);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [drainRetryQueue]);
 
   // Auto-sync scheduler for Notion calendars based on syncFrequencyPerDay
   useEffect(() => {

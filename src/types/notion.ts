@@ -142,8 +142,14 @@ export interface NotionScrapedCalendar {
   color: string;
   enabled: boolean;
   lastSync?: string;
+  lastSuccessfulSync?: string;
+  lastSyncCursor?: string;
   eventCount?: number;
   type: 'notion-scraped';
   metadata?: NotionPageMetadata;
   syncFrequencyPerDay?: number; // per-day auto-sync frequency
+  connectionMode?: 'api' | 'public';
+  lastSetupAttempt?: string;
+  lastSetupResult?: 'success' | 'error';
+  lastSetupError?: string;
 }
