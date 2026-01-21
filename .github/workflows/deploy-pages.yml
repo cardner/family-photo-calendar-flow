@@ -54,6 +54,8 @@ jobs:
         run: npm test
 
       - name: Build (custom domain)
+        env:
+          VITE_NOTION_PROXY_BASE: ${{ secrets.VITE_NOTION_PROXY_BASE }}
         run: |
           # Custom domain build (root path)
             npx vite build --base=/
