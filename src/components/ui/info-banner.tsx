@@ -114,14 +114,14 @@ const InfoBannerTitle = React.forwardRef<HTMLParagraphElement, InfoBannerTitlePr
 InfoBannerTitle.displayName = "InfoBannerTitle";
 
 export interface InfoBannerDescriptionProps
-  extends React.HTMLAttributes<HTMLParagraphElement>,
+  extends React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof infoBannerDescriptionVariants> {}
 
 const InfoBannerDescription = React.forwardRef<
-  HTMLParagraphElement,
+  HTMLDivElement,
   InfoBannerDescriptionProps
 >(({ className, variant, ...props }, ref) => (
-  <p
+  <div
     ref={ref}
     className={cn(infoBannerDescriptionVariants({ variant }), className)}
     {...props}

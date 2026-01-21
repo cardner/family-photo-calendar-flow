@@ -37,8 +37,22 @@ export const useBackgroundSync = () => {
     }
   }, []);
 
+  const isIOSStandalone = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || (navigator as Navigator & { standalone?: boolean }).standalone;
+    return isIOS && !!isStandalone;
+  }, []);
+
   // Check for background sync support
   useEffect(() => {
+    if (isIOSStandalone()) {
+      setIsBackgroundSyncSupported(false);
+      setIsPeriodicSyncSupported(false);
+      return;
+    }
+
     if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
       setIsBackgroundSyncSupported(true);
     }
@@ -46,7 +60,7 @@ export const useBackgroundSync = () => {
     if ('serviceWorker' in navigator && 'periodicSync' in window.ServiceWorkerRegistration.prototype) {
       setIsPeriodicSyncSupported(true);
     }
-  }, []);
+  }, [isIOSStandalone]);
 
   // Listen for background sync messages
   useEffect(() => {
@@ -87,7 +101,7 @@ export const useBackgroundSync = () => {
 
   // Register for background sync
   const registerBackgroundSync = useCallback(async (): Promise<boolean> => {
-    if (!isBackgroundSyncSupported) {
+    if (!isBackgroundSyncSupported || isIOSStandalone()) {
       console.warn('Background sync not supported');
       return false;
     }
@@ -110,11 +124,11 @@ export const useBackgroundSync = () => {
       console.error('Failed to register background sync:', error);
       return false;
     }
-  }, [isBackgroundSyncSupported]);
+  }, [isBackgroundSyncSupported, isIOSStandalone]);
 
   // Register for periodic background sync
   const registerPeriodicSync = useCallback(async (): Promise<boolean> => {
-    if (!isPeriodicSyncSupported) {
+    if (!isPeriodicSyncSupported || isIOSStandalone()) {
       console.warn('Periodic sync not supported');
       return false;
     }
@@ -137,11 +151,11 @@ export const useBackgroundSync = () => {
       console.error('Failed to register periodic sync:', error);
       return false;
     }
-  }, [isPeriodicSyncSupported]);
+  }, [isPeriodicSyncSupported, isIOSStandalone]);
 
   // Manually trigger background sync - Fixed TypeScript error
   const triggerBackgroundSync = useCallback(async (): Promise<boolean> => {
-    if (!isBackgroundSyncSupported) {
+    if (!isBackgroundSyncSupported || isIOSStandalone()) {
       return false;
     }
 
@@ -166,7 +180,7 @@ export const useBackgroundSync = () => {
       console.error('Failed to trigger background sync:', error);
       return false;
     }
-  }, [isBackgroundSyncSupported, toast]);
+  }, [isBackgroundSyncSupported, isIOSStandalone, toast]);
 
   return {
     isBackgroundSyncSupported,

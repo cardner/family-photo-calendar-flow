@@ -5,11 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 import { Loader2, TestTube, Bug, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 
 interface NotionUrlFormProps {
-  onSubmit: (data: { name: string; url: string; color: string; token: string; databaseId: string }) => Promise<void>;
+  onSubmit: (data: { name: string; url: string; color: string; token?: string; databaseId: string; connectionMode: 'api' | 'public' }) => Promise<void>;
   onCancel: () => void;
-  validateUrl: (url: string, token?: string) => Promise<{ isValid: boolean; error?: string }>;
+  validateUrl: (url: string, token?: string, connectionMode?: 'api' | 'public') => Promise<{ isValid: boolean; error?: string; code?: string }>;
   showDebugButton?: boolean;
   onDebugPreview?: (url: string, token?: string) => void;
 }
@@ -27,7 +28,8 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
     name: '',
     url: '',
     token: '',
-    color: CALENDAR_COLORS[0]
+    color: CALENDAR_COLORS[0],
+    connectionMode: 'api' as 'api' | 'public'
   });
   const [isValidating, setIsValidating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,6 +37,7 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
   interface ValidationResult {
     status: 'idle' | 'success' | 'error';
     error?: string;
+    code?: string;
   }
   const [validationResult, setValidationResult] = useState<ValidationResult>({ status: 'idle' });
 
@@ -60,7 +63,7 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
       return;
     }
 
-    if (!formData.token.trim()) {
+    if (formData.connectionMode === 'api' && !formData.token.trim()) {
       setValidationResult({ status: 'error', error: 'Please enter a Notion integration token' });
       return;
     }
@@ -69,7 +72,7 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
     setValidationResult({ status: 'idle' });
 
     try {
-      const result = await validateUrl(formData.url, formData.token);
+      const result = await validateUrl(formData.url, formData.token, formData.connectionMode);
       
       if (result.isValid) {
         setValidationResult({ status: 'success' });
@@ -83,7 +86,7 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
           }));
         }
       } else {
-        setValidationResult({ status: 'error', error: result.error });
+        setValidationResult({ status: 'error', error: result.error, code: result.code });
       }
     } catch (error) {
       setValidationResult({ 
@@ -118,8 +121,9 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
         name: formData.name,
         url: formData.url,
         color: formData.color,
-        token: formData.token,
-        databaseId
+        token: formData.connectionMode === 'api' ? formData.token : undefined,
+        databaseId,
+        connectionMode: formData.connectionMode
       });
     } catch (error) {
       setValidationResult({ 
@@ -148,38 +152,73 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
           <InfoBannerTitle variant="info">Before adding your database</InfoBannerTitle>
           <InfoBannerDescription variant="info" className="space-y-2 text-sm">
             <ol className="list-decimal list-inside space-y-1">
-              <li>
-                Create an integration at{' '}
-                <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                  notion.so/my-integrations
-                </a>
-              </li>
-              <li>Copy the integration token (starts with "ntn_")</li>
-              <li>Share your database with the integration</li>
-              <li>Copy the database URL from your browser</li>
+              {formData.connectionMode === 'api' ? (
+                <>
+                  <li>
+                    Create an integration at{' '}
+                    <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      notion.so/my-integrations
+                    </a>
+                  </li>
+                  <li>Copy the integration token (starts with "ntn_")</li>
+                  <li>Share your database with the integration</li>
+                  <li>Copy the database URL from your browser</li>
+                </>
+              ) : (
+                <>
+                  <li>Share your database publicly (“Share to web”)</li>
+                  <li>Copy the database URL from your browser</li>
+                  <li>Ensure the public share remains enabled</li>
+                </>
+              )}
             </ol>
           </InfoBannerDescription>
         </InfoBannerContent>
       </InfoBanner>
 
-      {/* Integration Token */}
+      {/* Connection Mode */}
       <div>
-        <Label htmlFor="token">Notion Integration Token</Label>
-        <Input
-          id="token"
-          type="password"
-          placeholder="ntn_..."
-          value={formData.token}
-          onChange={(e) => {
-            setFormData(prev => ({ ...prev, token: e.target.value }));
+        <Label>Connection Mode</Label>
+        <Select
+          value={formData.connectionMode}
+          onValueChange={(value: 'api' | 'public') => {
+            setFormData(prev => ({ ...prev, connectionMode: value }));
             setValidationResult({ status: 'idle' });
           }}
-          className="mt-1"
-        />
+        >
+          <SelectTrigger className="mt-1">
+            <SelectValue placeholder="Choose connection mode" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="api">API (token)</SelectItem>
+            <SelectItem value="public">Public shared page</SelectItem>
+          </SelectContent>
+        </Select>
         <p className="text-xs text-muted-foreground mt-1">
-          Get your integration token from <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Notion Integrations</a>
+          iOS PWA may block direct Notion API calls. Use public share if API mode fails with CORS.
         </p>
       </div>
+
+      {/* Integration Token */}
+      {formData.connectionMode === 'api' && (
+        <div>
+          <Label htmlFor="token">Notion Integration Token</Label>
+          <Input
+            id="token"
+            type="password"
+            placeholder="ntn_..."
+            value={formData.token}
+            onChange={(e) => {
+              setFormData(prev => ({ ...prev, token: e.target.value }));
+              setValidationResult({ status: 'idle' });
+            }}
+            className="mt-1"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Get your integration token from <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Notion Integrations</a>
+          </p>
+        </div>
+      )}
 
       {/* Database URL */}
       <div>
@@ -203,7 +242,7 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
       {/* Validation Button */}
       <Button
         onClick={handleValidate}
-        disabled={isValidating || !formData.url.trim() || !formData.token.trim()}
+        disabled={isValidating || !formData.url.trim() || (formData.connectionMode === 'api' && !formData.token.trim())}
         variant="outline"
         className="w-full"
       >
@@ -242,6 +281,19 @@ export const NotionUrlForm: React.FC<NotionUrlFormProps> = ({
             </InfoBannerDescription>
           </InfoBannerContent>
         </InfoBanner>
+      )}
+      {validationResult.status === 'error' && validationResult.code === 'cors_blocked' && formData.connectionMode === 'api' && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            setFormData(prev => ({ ...prev, connectionMode: 'public' }));
+            setValidationResult({ status: 'idle' });
+          }}
+        >
+          Switch to Public Shared Page Mode
+        </Button>
       )}
 
       {/* Calendar Configuration - only show after successful validation */}

@@ -31,8 +31,9 @@ const NotionScrapedSettings = ({ selectedCalendarIds, onToggleSelection }: Notio
   } = useNotionScrapedCalendars();
   const { forceRefresh } = useCalendarSelection();
 
-  const handleAddCalendar = async (data: { name: string; url: string; color: string; token: string; databaseId: string }) => {
+  const handleAddCalendar = async (data: { name: string; url: string; color: string; token?: string; databaseId: string; connectionMode: 'api' | 'public' }) => {
     try {
+      const setupTimestamp = new Date().toISOString();
       await addCalendar({ 
         name: data.name, 
         url: data.url, 
@@ -46,7 +47,10 @@ const NotionScrapedSettings = ({ selectedCalendarIds, onToggleSelection }: Notio
           title: data.name,
           lastScraped: new Date(),
           eventCount: 0
-        }
+        },
+        connectionMode: data.connectionMode,
+        lastSetupAttempt: setupTimestamp,
+        lastSetupResult: 'success'
       });
       
       // Force refresh calendar views immediately after adding
@@ -61,6 +65,16 @@ const NotionScrapedSettings = ({ selectedCalendarIds, onToggleSelection }: Notio
       }, 100);
     } catch (error) {
       console.error('Error adding Notion calendar:', error);
+      try {
+        localStorage.setItem('notion_setup_last_attempt', JSON.stringify({
+          url: data.url,
+          result: 'error',
+          error: error instanceof Error ? error.message : 'Failed to add Notion database',
+          timestamp: new Date().toISOString()
+        }));
+      } catch (storageError) {
+        console.warn('Failed to record Notion setup attempt', storageError);
+      }
       toast.error(error instanceof Error ? error.message : 'Failed to add Notion database');
     }
   };
@@ -214,7 +228,8 @@ const NotionScrapedSettings = ({ selectedCalendarIds, onToggleSelection }: Notio
               eventCount: calendar.eventCount || 0,
               lastSync: calendar.lastSync,
               type: calendar.type,
-              syncFrequencyPerDay: calendar.syncFrequencyPerDay
+              syncFrequencyPerDay: calendar.syncFrequencyPerDay,
+              connectionMode: calendar.connectionMode
             }}
             onToggle={handleToggleCalendar}
             onDelete={handleDeleteCalendar}
