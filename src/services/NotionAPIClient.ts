@@ -42,16 +42,18 @@ export class NotionAPIClient {
   private inflight = 0;
   private queue: Array<() => void> = [];
 
-  private get devProxyBase(): string | null {
+  private get proxyBase(): string | null {
     if (typeof window === 'undefined') return null;
     const env = import.meta.env;
-    if (!env?.DEV) return null;
-    const proxyBase = env.VITE_NOTION_PROXY_BASE as string | undefined;
-    return proxyBase || '/notion';
+    const configured = env?.VITE_NOTION_PROXY_BASE as string | undefined;
+    if (env?.DEV) {
+      return configured || '/notion';
+    }
+    return configured || null;
   }
 
   private resolveUrl(endpoint: string): string {
-    const proxyBase = this.devProxyBase;
+    const proxyBase = this.proxyBase;
     if (proxyBase) {
       return `${proxyBase}${endpoint}`;
     }
