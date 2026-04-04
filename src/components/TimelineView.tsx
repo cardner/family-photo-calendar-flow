@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { format, isToday, isTomorrow, isYesterday, addDays, startOfDay, differenceInDays, isSameDay } from 'date-fns';
+import { format, isToday, isTomorrow, isYesterday, addDays, startOfDay } from 'date-fns';
 import { Event } from '@/types/calendar';
 import EventCard from './EventCard';
 import WeatherDisplay from './WeatherDisplay';
@@ -167,11 +167,14 @@ const TimelineView = ({ events, getWeatherForDate, onNotionEventClick }: Timelin
                    </div>
                 </div>
                 
-                {/* Responsive All-day events - full width on mobile, 45% on larger screens */}
+                {/* Responsive All-day events - full width on mobile, 75% on larger screens */}
                 {allDayEvents.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3 sm:mb-4 w-full sm:w-[45%]">
+                  <div className="mb-3 sm:mb-4 flex w-full min-w-0 flex-wrap content-start items-start gap-2 sm:w-[75%]">
                     {allDayEvents.map(event => (
-                      <div key={`${event.id}-${dateStr}`} className="flex-shrink-0 w-full sm:w-auto">
+                      <div
+                        key={`${event.id}-${dateStr}`}
+                        className="relative inline-block max-w-full min-w-0 align-top"
+                      >
                         <EventCard 
                           event={event} 
                           viewMode="timeline" 

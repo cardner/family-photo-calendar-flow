@@ -13,8 +13,9 @@ interface CalendarFeed {
 
 class CalendarStorageService {
   private dbName = 'FamilyCalendarDB';
-  private dbVersion = 1;
+  private dbVersion = 2;
   private storeName = 'calendar_feeds';
+  private syncQueueStore = 'sync_queue';
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
@@ -33,6 +34,9 @@ class CalendarStorageService {
           const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
           store.createIndex('name', 'name', { unique: false });
           store.createIndex('url', 'url', { unique: false });
+        }
+        if (!db.objectStoreNames.contains(this.syncQueueStore)) {
+          db.createObjectStore(this.syncQueueStore, { autoIncrement: true });
         }
       };
     });
@@ -110,6 +114,29 @@ class CalendarStorageService {
 
       request.onerror = () => reject(request.error);
       request.onsuccess = () => resolve(request.result || null);
+    });
+  }
+
+  /** Drain items queued by the service worker; used for background iCal sync handoff. */
+  async drainBackgroundSyncQueue(): Promise<unknown[]> {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.syncQueueStore], 'readwrite');
+      const store = transaction.objectStore(this.syncQueueStore);
+      const getAllRequest = store.getAll();
+
+      getAllRequest.onerror = () => reject(getAllRequest.error);
+      getAllRequest.onsuccess = () => {
+        const items = getAllRequest.result || [];
+        if (items.length === 0) {
+          resolve([]);
+          return;
+        }
+        const clearRequest = store.clear();
+        clearRequest.onerror = () => reject(clearRequest.error);
+        clearRequest.onsuccess = () => resolve(items);
+      };
     });
   }
 }

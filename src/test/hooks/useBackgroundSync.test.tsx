@@ -4,6 +4,16 @@ import React from 'react';
 import { useBackgroundSync } from '@/hooks/useBackgroundSync';
 import { mockSecurityModule, resetSecurityMocks } from '../utils/securityMocks';
 
+const { drainBackgroundSyncQueueMock } = vi.hoisted(() => ({
+  drainBackgroundSyncQueueMock: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@/services/calendarStorage', () => ({
+  calendarStorageService: {
+    drainBackgroundSyncQueue: drainBackgroundSyncQueueMock,
+  },
+}));
+
 // Apply security mock
 mockSecurityModule();
 
@@ -61,6 +71,7 @@ describe('useBackgroundSync', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     localStorageMock.getItem.mockReturnValue(null);
+    drainBackgroundSyncQueueMock.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -83,7 +94,7 @@ describe('useBackgroundSync', () => {
     expect(typeof result.current.processSyncQueue).toBe('function');
   });
 
-  it('should process sync queue from localStorage', () => {
+  it('should process sync queue from localStorage', async () => {
     const mockSyncQueue = [
       { calendarId: 'test-1', syncTime: new Date().toISOString() },
       { calendarId: 'test-2', syncTime: new Date().toISOString() }
@@ -96,10 +107,11 @@ describe('useBackgroundSync', () => {
     
     const { result } = renderHook(() => useBackgroundSync());
 
-    act(() => {
-      result.current.processSyncQueue();
+    await act(async () => {
+      await result.current.processSyncQueue();
     });
 
+    expect(drainBackgroundSyncQueueMock).toHaveBeenCalled();
     expect(localStorageMock.getItem).toHaveBeenCalledWith('calendar_sync_queue');
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('calendar_sync_queue');
     expect(dispatchEventSpy).toHaveBeenCalledWith(
@@ -110,16 +122,16 @@ describe('useBackgroundSync', () => {
     );
   });
 
-  it('should handle empty sync queue gracefully', () => {
+  it('should handle empty sync queue gracefully', async () => {
     localStorageMock.getItem.mockReturnValue(null);
     
     const { result } = renderHook(() => useBackgroundSync());
 
-    expect(() => {
-      act(() => {
-        result.current.processSyncQueue();
-      });
-    }).not.toThrow();
+    await expect(
+      act(async () => {
+        await result.current.processSyncQueue();
+      })
+    ).resolves.not.toThrow();
   });
 
   it('should initialize with empty sync queue', () => {

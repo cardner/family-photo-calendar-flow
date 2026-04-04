@@ -30,12 +30,14 @@ const CompactAllDayEvent = ({ event, viewMode, className = '', onNotionEventClic
       aria-label={`All day event: ${event.title}`}
       onClick={handleClick}
     >
-      <div className="flex items-center gap-2">
-        <EventIcon event={event} isAllDay={true} />
-        <h3 className={`${styles.textColors.title} ${styles.fontSizes.title} truncate flex-1`}>
+      <div className="flex min-w-0 items-start gap-2">
+        <span className="mt-0.5 flex-shrink-0">
+          <EventIcon event={event} isAllDay={true} />
+        </span>
+        <h3 className={`min-w-0 flex-1 break-words whitespace-normal ${styles.textColors.title} ${styles.fontSizes.title}`}>
           {event.title}
         </h3>
-        <div className={`${styles.fontSizes.time} ${styles.textColors.time} flex items-center gap-1 flex-shrink-0`}>
+        <div className={`${styles.fontSizes.time} ${styles.textColors.time} flex shrink-0 items-center gap-1 self-start pt-0.5`}>
           <Clock className="h-3 w-3" aria-hidden="true" />
           <span>All Day</span>
         </div>

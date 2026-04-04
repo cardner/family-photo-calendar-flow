@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { calendarStorageService } from '@/services/calendarStorage';
 
 export interface BackgroundSyncResult {
   timestamp: string;
@@ -16,20 +17,20 @@ export const useBackgroundSync = () => {
   const [syncQueue, setSyncQueue] = useState<unknown[]>([]);
   const { toast } = useToast();
 
-  // Process sync queue from service worker
-  const processSyncQueue = useCallback(() => {
+  // Process sync queue from service worker (IndexedDB; localStorage was legacy / unavailable in SW)
+  const processSyncQueue = useCallback(async () => {
     try {
-      const queueData = localStorage.getItem('calendar_sync_queue');
-      if (queueData) {
-        const queue = JSON.parse(queueData);
-        setSyncQueue(queue);
-        
-        // Clear the queue after processing
+      const fromIdb = await calendarStorageService.drainBackgroundSyncQueue();
+      const legacyRaw = localStorage.getItem('calendar_sync_queue');
+      const legacy = legacyRaw ? (JSON.parse(legacyRaw) as unknown[]) : [];
+      if (legacyRaw) {
         localStorage.removeItem('calendar_sync_queue');
-        
-        // Trigger a refresh of calendar data in the main application
-        window.dispatchEvent(new CustomEvent('background-sync-data-available', { 
-          detail: { syncQueue: queue } 
+      }
+      const queue = [...fromIdb, ...legacy];
+      if (queue.length > 0) {
+        setSyncQueue(queue);
+        window.dispatchEvent(new CustomEvent('background-sync-data-available', {
+          detail: { syncQueue: queue },
         }));
       }
     } catch (error) {
@@ -87,7 +88,7 @@ export const useBackgroundSync = () => {
           }
 
           // Process any queued sync data
-          processSyncQueue();
+          void processSyncQueue();
         }
       };
 

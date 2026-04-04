@@ -161,7 +161,7 @@ export const getEventStyles = (event: Event, viewMode: string) => {
     if (viewMode !== 'timeline') return '';
     
     if (isAllDay) {
-      return 'w-auto min-w-fit max-w-[200px]';
+      return 'box-border w-full min-w-0 max-w-full';
     }
     
     return 'w-[35%]';

@@ -2,6 +2,28 @@
 const CACHE_VERSION = 'fp-calendar-v4';
 const CACHE_NAME = `${CACHE_VERSION}`;
 
+const FAMILY_CALENDAR_DB = 'FamilyCalendarDB';
+const FAMILY_CALENDAR_DB_VERSION = 2;
+
+function openFamilyCalendarDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(FAMILY_CALENDAR_DB, FAMILY_CALENDAR_DB_VERSION);
+    request.onerror = () => reject(request.error);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('calendar_feeds')) {
+        const store = db.createObjectStore('calendar_feeds', { keyPath: 'id' });
+        store.createIndex('name', 'name', { unique: false });
+        store.createIndex('url', 'url', { unique: false });
+      }
+      if (!db.objectStoreNames.contains('sync_queue')) {
+        db.createObjectStore('sync_queue', { autoIncrement: true });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -120,12 +142,13 @@ async function syncCalendarsInBackground() {
 
 // Helper function to get calendars from IndexedDB
 async function getStoredCalendars() {
+  let db;
+  try {
+    db = await openFamilyCalendarDB();
+  } catch (e) {
+    return Promise.reject(e);
+  }
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('FamilyCalendarDB', 1);
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
       const allCalendars = [];
       
       // Get iCal calendars
@@ -171,7 +194,6 @@ async function getStoredCalendars() {
           resolve([]);
         }
       }
-    };
   });
 }
 
@@ -239,34 +261,18 @@ async function syncSingleCalendar(calendar) {
     isBackgroundSync: true // Flag to indicate this came from background sync
   };
   
-  // Store in a temporary location for the main thread to pick up
-  const request = indexedDB.open('FamilyCalendarDB', 1);
+  // Store for the main thread to pick up (localStorage is unavailable in service workers)
+  const db = await openFamilyCalendarDB();
+  if (!db.objectStoreNames.contains('sync_queue')) {
+    throw new Error('sync_queue store missing after IndexedDB upgrade');
+  }
   return new Promise((resolve, reject) => {
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => {
-      const db = request.result;
-      
-      // Create a temporary store for sync data if it doesn't exist
-      if (!db.objectStoreNames.contains('sync_queue')) {
-        // Can't modify schema here, so we'll use localStorage as fallback
-        try {
-          const existingQueue = JSON.parse(localStorage.getItem('calendar_sync_queue') || '[]');
-          existingQueue.push(syncData);
-          localStorage.setItem('calendar_sync_queue', JSON.stringify(existingQueue));
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
-        return;
-      }
-      
-      const transaction = db.transaction(['sync_queue'], 'readwrite');
-      const store = transaction.objectStore('sync_queue');
-      const addRequest = store.add(syncData);
-      
-      addRequest.onerror = () => reject(addRequest.error);
-      addRequest.onsuccess = () => resolve();
-    };
+    const transaction = db.transaction(['sync_queue'], 'readwrite');
+    const store = transaction.objectStore('sync_queue');
+    const addRequest = store.add(syncData);
+
+    addRequest.onerror = () => reject(addRequest.error);
+    addRequest.onsuccess = () => resolve();
   });
 }
 
