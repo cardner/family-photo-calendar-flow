@@ -56,6 +56,7 @@ jobs:
       - name: Build (custom domain)
         env:
           VITE_NOTION_PROXY_BASE: ${{ secrets.VITE_NOTION_PROXY_BASE }}
+          VITE_WORKER_BASE: ${{ secrets.VITE_WORKER_BASE }}
         run: |
           # Custom domain build (root path)
             npx vite build --base=/

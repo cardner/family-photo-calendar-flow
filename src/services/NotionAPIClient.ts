@@ -45,11 +45,21 @@ export class NotionAPIClient {
   private get proxyBase(): string | null {
     if (typeof window === 'undefined') return null;
     const env = import.meta.env;
-    const configured = env?.VITE_NOTION_PROXY_BASE as string | undefined;
-    if (env?.DEV) {
-      return configured || '/notion';
+    // Preferred: single unified Worker origin -> append the /notion route.
+    const workerBase = (env?.VITE_WORKER_BASE as string | undefined)?.replace(/\/$/, '');
+    if (workerBase) {
+      return `${workerBase}/notion`;
     }
-    return configured || null;
+    // Backward compat: legacy Notion-only proxy base (already includes /notion).
+    const legacy = env?.VITE_NOTION_PROXY_BASE as string | undefined;
+    if (legacy) {
+      return legacy;
+    }
+    // Dev fallback: Vite dev proxy.
+    if (env?.DEV) {
+      return '/notion';
+    }
+    return null;
   }
 
   private resolveUrl(endpoint: string): string {

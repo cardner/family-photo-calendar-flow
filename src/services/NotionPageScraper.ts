@@ -1,5 +1,6 @@
 import { NotionScrapedEvent, NotionPageMetadata, NotionColumnMapping } from '@/types/notion';
 import { notionTableParser, NotionDebugResult, NotionDebugInfo } from './NotionTableParser';
+import { buildWorkerProxyUrl, hasWorkerBase } from '@/utils/workerProxy';
 
 interface ScrapeResult {
   success: boolean;
@@ -13,7 +14,6 @@ export interface DebugScrapeResult extends ScrapeResult {
 }
 
 class NotionPageScraper {
-  private readonly corsProxy = 'https://api.allorigins.win/get';
   private readonly DOM_LOAD_DELAY = 20000; // 20 seconds
 
   async scrapePage(pageUrl: string): Promise<ScrapeResult> {
@@ -41,14 +41,19 @@ class NotionPageScraper {
         };
       }
 
-      
+      if (!hasWorkerBase()) {
+        throw new Error(
+          'Notion page proxy is not configured. Set VITE_WORKER_BASE to your Cloudflare Worker URL.',
+        );
+      }
 
-      const proxyUrl = `${this.corsProxy}?url=${encodeURIComponent(pageUrl)}`;
-      
+      // Fetch the public Notion page HTML through the Cloudflare Worker proxy.
+      const proxyUrl = buildWorkerProxyUrl('notion-page', pageUrl);
+
       const response = await fetch(proxyUrl, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
+          'Accept': 'text/html, */*',
         }
       });
 
@@ -56,13 +61,11 @@ class NotionPageScraper {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const proxyData = await response.json();
-      
-      if (!proxyData.contents) {
+      const htmlContent = await response.text();
+
+      if (!htmlContent) {
         throw new Error('No content received from proxy');
       }
-
-      const htmlContent = proxyData.contents;
       
 
       // Wait for DOM to fully load before parsing
