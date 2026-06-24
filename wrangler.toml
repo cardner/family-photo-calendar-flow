@@ -1,3 +1,14 @@
-name = "notion-proxy"
-main = "workers/notion-proxy.ts"
+name = "calendar-proxy"
+main = "workers/proxy.ts"
 compatibility_date = "2025-01-15"
+
+# Per-IP rate-limiting counters. Create with:
+#   wrangler kv namespace create RATE_LIMIT
+# then paste the returned id below.
+[[kv_namespaces]]
+binding = "RATE_LIMIT"
+id = "30553d9579e245cfb57c13fab9e97939"
+
+# Optional: extra hostnames allowed for the /ical route (comma separated).
+# [vars]
+# ALLOWED_ICAL_HOSTS = "calendars.example.com,feeds.example.org"

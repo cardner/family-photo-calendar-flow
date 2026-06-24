@@ -16,7 +16,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "test": "vitest run --reporter=dot",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "worker:dev": "wrangler dev",
+    "worker:deploy": "wrangler deploy"
   },
   "dependencies": {
     "@commitlint/cli": "^19.8.1",

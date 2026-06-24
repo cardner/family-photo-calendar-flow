@@ -23,7 +23,13 @@ export default defineConfig(({ mode }) => ({
             }
           });
         }
-      }
+      },
+      // Dev proxies for the unified Worker routes. Run `npm run worker:dev`
+      // (wrangler dev, port 8787) to exercise these locally, or set
+      // VITE_WORKER_BASE to a deployed Worker URL to bypass these entirely.
+      '/ical': { target: 'http://localhost:8787', changeOrigin: true },
+      '/photos': { target: 'http://localhost:8787', changeOrigin: true },
+      '/notion-page': { target: 'http://localhost:8787', changeOrigin: true },
     }
   },
   test: {

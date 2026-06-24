@@ -4,6 +4,7 @@ import ICAL from 'ical.js';
 import { calendarStorageService } from '@/services/calendarStorage';
 import { useBackgroundSync } from './useBackgroundSync';
 import { CalendarRefreshUtils } from './useCalendarRefresh';
+import { buildWorkerProxyUrl, hasWorkerBase } from '@/utils/workerProxy';
 
 export interface ICalCalendar {
   id: string;
@@ -35,20 +36,6 @@ export interface ICalEventOccurrence {
 }
 
 const ICAL_EVENTS_KEY = 'family_calendar_ical_events';
-
-// Multiple CORS proxy options for better reliability
-const CORS_PROXIES = [
-  (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  (url: string) => `https://cors-anywhere.herokuapp.com/${url}`,
-  (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
-  (url: string) => `https://cors.bridged.cc/${url}`,
-];
-
-// Optional custom proxy (e.g. Supabase Edge Function or self-hosted) configured via Vite env
-// Provide a URL where the raw ICS feed can be fetched with ?url= encoded param or path style
-interface ViteEnvLike { VITE_ICAL_PROXY_URL?: string; DEV?: boolean }
-// Narrow import.meta typing to avoid any
-const CUSTOM_ICAL_PROXY = (typeof import.meta !== 'undefined' ? (import.meta as unknown as { env: ViteEnvLike }).env?.VITE_ICAL_PROXY_URL : '') || '';
 
 // Basic normalization & sanity validation to avoid sending obviously invalid tokens like 'Family'
 const normalizeICalUrl = (raw: string): { url: string; valid: boolean; reason?: string } => {
@@ -519,77 +506,36 @@ export const useICalCalendars = () => {
       throw new Error(`Invalid iCal URL: ${reason || 'Unknown reason'}`);
     }
     const targetUrl = normalized;
+
+    // All cross-origin iCal traffic now goes through the Cloudflare Worker proxy,
+    // which handles CORS, host allowlisting, rate limiting and caching.
+    const proxyUrl = buildWorkerProxyUrl('ical', targetUrl);
+
     try {
-      const response = await fetch(targetUrl, {
-        mode: 'cors',
-        headers: {
-          'Accept': 'text/calendar, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (compatible; FamilyCalendarApp/1.0)',
-        }
+      const response = await fetch(proxyUrl, {
+        headers: { 'Accept': 'text/calendar, text/plain, */*' },
       });
-      
-      if (response.ok) {
-        const data = await response.text();
-        
-        if (isValidICalData(data)) {
-          return data;
-        } else {
-      console.warn('Direct fetch returned invalid iCal data');
-        }
+
+      if (!response.ok) {
+        throw new Error(`Proxy request failed with status ${response.status}`);
       }
+
+      const data = await response.text();
+      if (isValidICalData(data)) {
+        return data;
+      }
+      throw new Error('Proxy returned invalid iCal data');
     } catch (error) {
-    console.warn('Direct fetch failed, trying proxies');
-    }
-
-    // Try custom proxy first if configured
-    if (CUSTOM_ICAL_PROXY) {
-      try {
-        const proxyEndpoint = CUSTOM_ICAL_PROXY.includes('{url}')
-          ? CUSTOM_ICAL_PROXY.replace('{url}', encodeURIComponent(targetUrl))
-          : `${CUSTOM_ICAL_PROXY}${CUSTOM_ICAL_PROXY.includes('?') ? '&' : '?'}url=${encodeURIComponent(targetUrl)}`;
-        const proxyResp = await fetch(proxyEndpoint, { headers: { 'Accept': 'text/calendar, text/plain, */*' } });
-        if (proxyResp.ok) {
-          const data = await proxyResp.text();
-          if (isValidICalData(data)) {
-            return data;
-          } else {
-            console.warn('Custom proxy returned invalid iCal data');
-          }
-        } else {
-          console.warn('Custom proxy request failed with status', proxyResp.status);
-        }
-      } catch (e) {
-        console.warn('Custom proxy request failed');
+      if (!hasWorkerBase()) {
+        throw new Error(
+          'iCal proxy is not configured. Set VITE_WORKER_BASE to your Cloudflare Worker URL.',
+        );
       }
+      throw new Error(
+        `Failed to fetch iCal data: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
+          'Please check that the calendar URL is publicly accessible and an allowed host.',
+      );
     }
-
-    for (let i = 0; i < CORS_PROXIES.length; i++) {
-      try {
-        const proxyUrl = CORS_PROXIES[i](targetUrl);
-        
-        const response = await fetch(proxyUrl, {
-          headers: {
-            'Accept': 'text/calendar, text/plain, */*',
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.text();
-          
-          if (isValidICalData(data)) {
-            return data;
-          } else {
-            console.warn(`Proxy ${i + 1} returned invalid iCal data`);
-          }
-        } else {
-          console.warn(`Proxy ${i + 1} failed with status ${response.status}`);
-        }
-      } catch (error) {
-        console.warn(`Proxy ${i + 1} failed`);
-      }
-    }
-
-    throw new Error('All fetch methods failed or returned invalid data. Please check if the iCal URL is publicly accessible and returns valid calendar data.');
   }, [isValidICalData]);
 
   const syncCalendar = useCallback(async (calendar: ICalCalendar) => {

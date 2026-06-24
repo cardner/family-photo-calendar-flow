@@ -2,6 +2,11 @@
 const CACHE_VERSION = 'fp-calendar-v4';
 const CACHE_NAME = `${CACHE_VERSION}`;
 
+// Base URL of the unified Cloudflare Worker proxy. Keep this in sync with the
+// app's VITE_WORKER_BASE build value (the service worker cannot read Vite env).
+// Leave empty to fall back to a direct (CORS-permitting) fetch only.
+const WORKER_BASE = 'https://calendar-proxy.driffterillustrations.workers.dev';
+
 const FAMILY_CALENDAR_DB = 'FamilyCalendarDB';
 const FAMILY_CALENDAR_DB_VERSION = 2;
 
@@ -199,25 +204,19 @@ async function getStoredCalendars() {
 
 // Helper function to sync a single calendar
 async function syncSingleCalendar(calendar) {
-  const CORS_PROXIES = [
-    (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    (url) => `https://cors-anywhere.herokuapp.com/${url}`,
-    (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
-    (url) => `https://cors.bridged.cc/${url}`,
-  ];
-  
-  // Try direct fetch first, then proxies
+  // Route through the Cloudflare Worker proxy when configured; otherwise fall
+  // back to a direct fetch (only works for CORS-permitting feeds).
+  const fetchUrl = WORKER_BASE
+    ? `${WORKER_BASE}/ical?url=${encodeURIComponent(calendar.url)}`
+    : calendar.url;
+
   let icalData = null;
-  
+
   try {
-    const response = await fetch(calendar.url, {
-      mode: 'cors',
-      headers: {
-        'Accept': 'text/calendar, text/plain, */*',
-        'User-Agent': 'Mozilla/5.0 (compatible; FamilyCalendarApp/1.0)',
-      }
+    const response = await fetch(fetchUrl, {
+      headers: { 'Accept': 'text/calendar, text/plain, */*' },
     });
-    
+
     if (response.ok) {
       const data = await response.text();
       if (data && data.toLowerCase().includes('begin:vcalendar')) {
@@ -225,31 +224,11 @@ async function syncSingleCalendar(calendar) {
       }
     }
   } catch (error) {
-    // Direct fetch failed, try proxies
+    // Fetch failed; handled below.
   }
-  
-  // Try proxies if direct fetch failed
+
   if (!icalData) {
-    for (const proxy of CORS_PROXIES) {
-      try {
-        const proxyUrl = proxy(calendar.url);
-        const response = await fetch(proxyUrl);
-        
-        if (response.ok) {
-          const data = await response.text();
-          if (data && data.toLowerCase().includes('begin:vcalendar')) {
-            icalData = data;
-            break;
-          }
-        }
-      } catch (error) {
-        // Continue to next proxy
-      }
-    }
-  }
-  
-  if (!icalData) {
-    throw new Error('Failed to fetch calendar data from all sources');
+    throw new Error('Failed to fetch calendar data from the proxy');
   }
   
   // Store the raw iCal data temporarily for the main thread to process
