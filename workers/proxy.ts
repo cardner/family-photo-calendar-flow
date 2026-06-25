@@ -50,6 +50,8 @@ const ICAL_HOSTS = [
   'live.com',
   'graph.microsoft.com',
   'icloud.com',
+  'georgeh.github.io',
+  'worldpublicholiday.com',
 ];
 
 const PHOTOS_HOSTS = [
