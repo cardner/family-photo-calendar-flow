@@ -38,7 +38,12 @@ Object.defineProperty(window, 'localStorage', {
 const mockServiceWorker = {
   ready: Promise.resolve({
     active: {
-      postMessage: vi.fn(),
+      postMessage: vi.fn((_message: unknown, ports?: MessagePort[]) => {
+        const port = ports?.[0];
+        if (port) {
+          port.postMessage({ success: true });
+        }
+      }),
     },
     sync: {
       register: vi.fn(),
@@ -144,9 +149,9 @@ describe('useBackgroundSync', () => {
   it('should call registerBackgroundSync without throwing', async () => {
     const { result } = renderHook(() => useBackgroundSync());
 
-    await expect(
-      act(() => result.current.registerBackgroundSync())
-    ).resolves.not.toThrow();
+    await act(async () => {
+      await expect(result.current.registerBackgroundSync()).resolves.toBe(true);
+    });
   });
 
 });
