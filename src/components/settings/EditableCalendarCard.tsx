@@ -45,21 +45,25 @@ const EditableCalendarCard = ({
 	color: calendar.color,
 	syncFrequencyPerDay: calendar.syncFrequencyPerDay || 0
   });
+  const [prevCalendar, setPrevCalendar] = useState(calendar);
   const ORIGINAL_REF = useRef(calendar);
   const draftKey = `calendar_edit_draft_${calendar.id}`;
 
+  if (calendar !== prevCalendar) {
+    setPrevCalendar(calendar);
+    if (!isEditing) {
+      setEditData({
+        name: calendar.name,
+        url: calendar.url,
+        color: calendar.color,
+        syncFrequencyPerDay: calendar.syncFrequencyPerDay || 0
+      });
+    }
+  }
+
   useEffect(() => {
     ORIGINAL_REF.current = calendar;
-    if (isEditing) {
-      return;
-    }
-    setEditData({
-      name: calendar.name,
-      url: calendar.url,
-	color: calendar.color,
-	syncFrequencyPerDay: calendar.syncFrequencyPerDay || 0
-    });
-  }, [calendar, isEditing]);
+  }, [calendar]);
 
   // Load draft on mount (auto-enter editing if draft present)
   useEffect(() => {

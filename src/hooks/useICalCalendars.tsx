@@ -289,7 +289,7 @@ export const useICalCalendars = () => {
       await loadCalendars(); // Refresh the state
     } catch (error) {
       console.error('Error updating calendar in IndexedDB:', error);
-      throw new Error('Failed to update calendar');
+      throw new Error('Failed to update calendar', { cause: error });
     }
   }, [loadCalendars]);
 
@@ -428,7 +428,7 @@ export const useICalCalendars = () => {
       return newCalendar;
     } catch (error) {
       console.error('Error saving calendar to IndexedDB:', error);
-      throw new Error('Failed to save calendar to database');
+      throw new Error('Failed to save calendar to database', { cause: error });
     }
   }, [loadCalendars, isBackgroundSyncSupported, triggerBackgroundSync]);
 
@@ -466,7 +466,7 @@ export const useICalCalendars = () => {
   // debug removed: calendar fully removed
     } catch (error) {
       console.error('Error removing calendar from IndexedDB:', error);
-      throw new Error('Failed to remove calendar');
+      throw new Error('Failed to remove calendar', { cause: error });
     }
   }, [loadCalendars]);
 
@@ -529,11 +529,13 @@ export const useICalCalendars = () => {
       if (!hasWorkerBase()) {
         throw new Error(
           'iCal proxy is not configured. Set VITE_WORKER_BASE to your Cloudflare Worker URL.',
+          { cause: error },
         );
       }
       throw new Error(
         `Failed to fetch iCal data: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
           'Please check that the calendar URL is publicly accessible and an allowed host.',
+        { cause: error },
       );
     }
   }, [isValidICalData]);
@@ -559,7 +561,7 @@ export const useICalCalendars = () => {
         jcalData = ICAL.parse(icalData);
       } catch (parseError) {
         console.error('ICAL parsing error:', parseError);
-        throw new Error(`Invalid calendar format: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`);
+        throw new Error(`Invalid calendar format: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`, { cause: parseError });
       }
 
       const vcalendar = new ICAL.Component(jcalData);

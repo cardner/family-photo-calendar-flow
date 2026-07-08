@@ -581,7 +581,7 @@ export const useNotionScrapedCalendars = () => {
   }, [performSyncCalendar, debouncedSyncRef, notionRateLimiterRef, toast]);
 
   const drainRetryQueue = useCallback(async () => {
-    let queue: string[] = [];
+    let queue: string[];
     try {
       queue = JSON.parse(localStorage.getItem(RETRY_QUEUE_KEY) || '[]') as string[];
       if (!queue.length) return;
@@ -686,7 +686,7 @@ export const useNotionScrapedCalendars = () => {
       const db = await notionAPIClient.getDatabase(databaseId, token);
       return { success: true, id: db.id };
     } catch (e) {
-      throw new Error(e instanceof Error ? e.message : 'Failed to test database access');
+      throw new Error(e instanceof Error ? e.message : 'Failed to test database access', { cause: e });
     }
   }, []);
 

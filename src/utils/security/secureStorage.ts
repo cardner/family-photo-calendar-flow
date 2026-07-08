@@ -49,13 +49,12 @@ class SecureStorage {
       localStorage.setItem(key, JSON.stringify(storageItem));
     } catch (error) {
       console.error('Failed to store encrypted data:', error);
-      // In test environments, fallback to plain storage with warning
       if (process.env.NODE_ENV === 'test') {
         console.warn('Encryption not available in test environment, storing plain text');
         localStorage.setItem(key, value);
         return;
       }
-      throw new Error('Failed to store data securely');
+      throw new Error('Failed to store data securely', { cause: error });
     }
   }
 

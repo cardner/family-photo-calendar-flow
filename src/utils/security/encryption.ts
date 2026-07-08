@@ -155,7 +155,7 @@ export class ClientSideEncryption {
       const decoder = new TextDecoder();
       return decoder.decode(decrypted);
     } catch (error) {
-      throw new Error('Decryption failed - invalid key or corrupted data');
+      throw new Error('Decryption failed - invalid key or corrupted data', { cause: error });
     }
   }
 
@@ -204,7 +204,7 @@ export const encryptData = async (data: string, password: string, salt: Uint8Arr
     return ClientSideEncryption.encrypt(data, key);
   } catch (error) {
     console.error('Encryption failed:', error);
-    throw new Error('Failed to encrypt data');
+    throw new Error('Failed to encrypt data', { cause: error });
   }
 };
 
@@ -217,6 +217,6 @@ export const decryptData = async (encryptedData: string, password: string): Prom
     return ClientSideEncryption.decrypt(encryptedData, key);
   } catch (error) {
     console.error('Decryption failed:', error);
-    throw new Error('Failed to decrypt data');
+    throw new Error('Failed to decrypt data', { cause: error });
   }
 };

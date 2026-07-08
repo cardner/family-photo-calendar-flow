@@ -8,14 +8,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const useScreenWakeLock = (enabled: boolean) => {
-  const [isSupported, setIsSupported] = useState(false);
+  const isSupported = typeof navigator !== 'undefined' && 'wakeLock' in navigator && typeof navigator.wakeLock?.request === 'function';
   const [isActive, setIsActive] = useState(false);
   const wakeLockRef = useRef<Awaited<ReturnType<NonNullable<Navigator['wakeLock']>['request']>> | null>(null);
-
-  // Check if the API is supported
-  useEffect(() => {
-    setIsSupported('wakeLock' in navigator && typeof navigator.wakeLock?.request === 'function');
-  }, []);
 
   // Request wake lock when enabled
   const requestWakeLock = useCallback(async () => {
