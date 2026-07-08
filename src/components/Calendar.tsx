@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import CalendarHeader from './calendar/CalendarHeader';
 import CalendarContent from './calendar/CalendarContent';
@@ -15,7 +15,9 @@ interface CalendarProps {
 }
 
 const Calendar = ({ onNotionEventClick }: CalendarProps) => {
-  const [view, setView] = useState<'timeline' | 'week' | 'month'>('month');
+  const { defaultView } = useSettings();
+  const [view, setView] = useState<'timeline' | 'week' | 'month'>(defaultView);
+  const [prevDefaultView, setPrevDefaultView] = useState(defaultView);
   const [weekOffset, setWeekOffset] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0); // triggers data recompute
   const [viewInstance, setViewInstance] = useState(0); // forces view remount for timeline/week/month
@@ -25,6 +27,11 @@ const Calendar = ({ onNotionEventClick }: CalendarProps) => {
   const rafRef = useRef<number | null>(null);
   const fadeTimeoutRef = useRef<number | null>(null);
   const removeTimeoutRef = useRef<number | null>(null);
+
+  if (defaultView !== prevDefaultView) {
+    setPrevDefaultView(defaultView);
+    setView(defaultView);
+  }
 
   const runAnimation = () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -52,16 +59,11 @@ const Calendar = ({ onNotionEventClick }: CalendarProps) => {
     };
     rafRef.current = requestAnimationFrame(tick);
   };
-  const { defaultView } = useSettings();
   const { getWeatherForDate } = useWeather();
   const { googleEvents, forceRefresh } = useLocalEvents(); // Now contains iCal events
   const { useRefreshListener } = useCalendarRefresh();
   
   const { filteredEvents, eventStats } = useIntegratedEvents(googleEvents, refreshKey);
-
-  useEffect(() => {
-    setView(defaultView);
-  }, [defaultView]);
 
   // Listen for calendar refresh events
   useRefreshListener((evt) => {

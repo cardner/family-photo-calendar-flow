@@ -10,9 +10,23 @@ export interface BackgroundSyncResult {
   totalCalendars: number;
 }
 
+function checkIsIOSStandalone() {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua);
+  const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || (navigator as Navigator & { standalone?: boolean }).standalone;
+  return isIOS && !!isStandalone;
+}
+
 export const useBackgroundSync = () => {
-  const [isBackgroundSyncSupported, setIsBackgroundSyncSupported] = useState(false);
-  const [isPeriodicSyncSupported, setIsPeriodicSyncSupported] = useState(false);
+  const [isBackgroundSyncSupported] = useState(() => {
+    if (checkIsIOSStandalone()) return false;
+    return 'serviceWorker' in navigator && 'sync' in (window.ServiceWorkerRegistration?.prototype ?? {});
+  });
+  const [isPeriodicSyncSupported] = useState(() => {
+    if (checkIsIOSStandalone()) return false;
+    return 'serviceWorker' in navigator && 'periodicSync' in (window.ServiceWorkerRegistration?.prototype ?? {});
+  });
   const [lastSyncResult, setLastSyncResult] = useState<BackgroundSyncResult | null>(null);
   const [syncQueue, setSyncQueue] = useState<unknown[]>([]);
   const { toast } = useToast();
@@ -38,30 +52,7 @@ export const useBackgroundSync = () => {
     }
   }, []);
 
-  const isIOSStandalone = useCallback(() => {
-    if (typeof window === 'undefined') return false;
-    const ua = navigator.userAgent;
-    const isIOS = /iPad|iPhone|iPod/.test(ua);
-    const isStandalone = window.matchMedia?.('(display-mode: standalone)')?.matches || (navigator as Navigator & { standalone?: boolean }).standalone;
-    return isIOS && !!isStandalone;
-  }, []);
-
-  // Check for background sync support
-  useEffect(() => {
-    if (isIOSStandalone()) {
-      setIsBackgroundSyncSupported(false);
-      setIsPeriodicSyncSupported(false);
-      return;
-    }
-
-    if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-      setIsBackgroundSyncSupported(true);
-    }
-    
-    if ('serviceWorker' in navigator && 'periodicSync' in window.ServiceWorkerRegistration.prototype) {
-      setIsPeriodicSyncSupported(true);
-    }
-  }, [isIOSStandalone]);
+  const isIOSStandalone = useCallback(() => checkIsIOSStandalone(), []);
 
   // Listen for background sync messages
   useEffect(() => {

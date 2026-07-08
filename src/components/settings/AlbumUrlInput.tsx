@@ -17,9 +17,14 @@ const AlbumUrlInput = ({ onTestConnection }: AlbumUrlInputProps) => {
   const { toast } = useToast();
   
   const [albumUrl, setAlbumUrl] = useState(publicAlbumUrl || '');
-  const [isValidating, setIsValidating] = useState(false);
+  const [prevPublicAlbumUrl, setPrevPublicAlbumUrl] = useState(publicAlbumUrl);
   const [isTesting, setIsTesting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<'idle' | 'valid' | 'invalid'>('idle');
+
+  if (publicAlbumUrl !== prevPublicAlbumUrl) {
+    setPrevPublicAlbumUrl(publicAlbumUrl);
+    setAlbumUrl(publicAlbumUrl || '');
+  }
 
   const validateAlbumUrl = useCallback((url: string) => {
     if (!url.trim()) {
@@ -56,11 +61,6 @@ const AlbumUrlInput = ({ onTestConnection }: AlbumUrlInputProps) => {
       });
     }
   };
-
-  useEffect(() => {
-    setAlbumUrl(publicAlbumUrl || '');
-    validateAlbumUrl(publicAlbumUrl || '');
-  }, [publicAlbumUrl, validateAlbumUrl]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
