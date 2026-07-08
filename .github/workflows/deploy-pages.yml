@@ -42,16 +42,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.1.0
-          cache: 'npm'
+          cache: 'yarn'
 
       - name: Install dependencies
-        run: npm install
+        run: yarn install --immutable
 
       - name: Lint
-        run: npm run lint
+        run: yarn lint
 
       - name: Test
-        run: npm test
+        run: yarn test
 
       - name: Build (custom domain)
         env:

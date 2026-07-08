@@ -16,34 +16,28 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
-        cache: 'npm'
+        node-version: 24.1.0
+        cache: 'yarn'
 
     - name: Install dependencies
       shell: bash
-      run: npm install
-
-    - name: Auto-fix security vulnerabilities
-      shell: bash
-      run: |
-        echo "Attempting to auto-fix security vulnerabilities before release..."
-        npm audit fix --audit-level=high || echo "Some vulnerabilities couldn't be auto-fixed"
+      run: yarn install --immutable
 
     - name: Run tests
       if: ${{ inputs.skip_tests == 'false' }}
       shell: bash
-      run: npx vitest run
+      run: yarn vitest run
 
     - name: Security check (high/critical only)
       id: security-check
       shell: bash
       run: |
-        AUDIT_RESULT=$(npm audit --audit-level=high --json || echo '{}')
-        HIGH_CRITICAL_COUNT=$(echo "$AUDIT_RESULT" | jq -r '.metadata.vulnerabilities.high + .metadata.vulnerabilities.critical // 0' 2>/dev/null || echo "0")
+        AUDIT_RESULT=$(yarn npm audit --all --recursive --json || echo '{}')
+        HIGH_CRITICAL_COUNT=$(echo "$AUDIT_RESULT" | jq -r '[.advisories // {} | to_entries[].value | select(.severity == "high" or .severity == "critical")] | length' 2>/dev/null || echo "0")
         
         if [ "$HIGH_CRITICAL_COUNT" -gt 0 ]; then
           echo "❌ Cannot release with high/critical vulnerabilities"
-          npm audit --audit-level=high
+          yarn npm audit --all --recursive
           echo "passed=false" >> $GITHUB_OUTPUT
           exit 1
         fi
@@ -51,4 +45,4 @@ runs:
 
     - name: Build project
       shell: bash
-      run: npm run build
+      run: yarn build
