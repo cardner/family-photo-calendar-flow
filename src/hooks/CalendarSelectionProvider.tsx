@@ -56,7 +56,9 @@ const useProvideCalendarSelection = (): CalendarSelectionValue => {
   const calendarsFromEvents = useMemo<CalendarFromEvents[]>(() => {
     const iCalEvents = getICalEvents ? getICalEvents() : [];
     return allCalendars.map((cal: CombinedCalendar) => {
+      // eslint-disable-next-line no-useless-assignment
       let eventCount = 0;
+      // eslint-disable-next-line no-useless-assignment
       let hasEvents = false;
       let source: CalendarFromEvents['source'] = 'local';
       const calendarId = (cal as { id?: string }).id || '';

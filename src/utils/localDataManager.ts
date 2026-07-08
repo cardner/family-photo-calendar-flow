@@ -37,7 +37,7 @@ class LocalDataManager {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to export data:', error);
-      throw new Error('Failed to export local data');
+      throw new Error('Failed to export local data', { cause: error });
     }
   }
 

@@ -134,16 +134,16 @@ export class AccuWeatherProvider implements WeatherProvider {
       // Enhanced error messages for common issues
       if (error instanceof Error) {
         if (error.message.includes('401') || error.message.includes('Invalid API key')) {
-          throw new Error('Invalid AccuWeather API key or access denied');
+          throw new Error('Invalid AccuWeather API key or access denied', { cause: error });
         }
         if (error.message.includes('400') || error.message.includes('location not found')) {
-          throw new Error('Location not found - please check your zip code');
+          throw new Error('Location not found - please check your zip code', { cause: error });
         }
         if (error.message.includes('429') || error.message.includes('rate limit')) {
-          throw new Error('API rate limit exceeded - please try again later');
+          throw new Error('API rate limit exceeded - please try again later', { cause: error });
         }
         if (error.message.includes('timeout') || error.message.includes('network')) {
-          throw new Error('Weather service temporarily unavailable - please try again');
+          throw new Error('Weather service temporarily unavailable - please try again', { cause: error });
         }
       }
       

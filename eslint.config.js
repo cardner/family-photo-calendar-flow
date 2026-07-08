@@ -20,6 +20,9 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // New in react-hooks v7: architectural rules that require larger refactors — warn only.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/error-boundaries": "warn",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },

@@ -111,7 +111,7 @@ class NotionService {
       return pages as PageObjectResponse[];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(errorMessage);
+      throw new Error(errorMessage, { cause: error });
     }
   }
 
@@ -139,7 +139,7 @@ class NotionService {
     } catch (error) {
       console.error('Failed to get integration info:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
-      throw new Error(`Failed to retrieve integration information: ${errorMessage}`);
+      throw new Error(`Failed to retrieve integration information: ${errorMessage}`, { cause: error });
     }
   }
 
@@ -148,7 +148,7 @@ class NotionService {
       return await notionAPIClient.getPage(pageId, token);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(errorMessage);
+      throw new Error(errorMessage, { cause: error });
     }
   }
 
@@ -157,7 +157,7 @@ class NotionService {
       return await notionAPIClient.getDatabase(databaseId, token);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(errorMessage);
+      throw new Error(errorMessage, { cause: error });
     }
   }
 
@@ -167,7 +167,7 @@ class NotionService {
       return pages as PageObjectResponse[];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      throw new Error(errorMessage);
+      throw new Error(errorMessage, { cause: error });
     }
   }
 

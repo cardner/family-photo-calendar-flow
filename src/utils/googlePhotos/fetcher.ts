@@ -31,6 +31,7 @@ export const fetchAlbumImages = async (albumUrl: string): Promise<string[]> => {
   } catch (error) {
     throw new Error(
       'Unable to reach the photos proxy. Please check your connection and try again later.',
+      { cause: error },
     );
   }
 

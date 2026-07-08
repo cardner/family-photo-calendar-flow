@@ -328,7 +328,7 @@ export class NotionTableParser {
 
     headers.forEach((header, index) => {
       const lowerHeader = header.toLowerCase();
-      let mappingReason = '';
+      let mappingReason: string;
       
       // Map common column names to types
       if (this.isDateColumn(lowerHeader)) {
