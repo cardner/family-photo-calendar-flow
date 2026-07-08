@@ -1,5 +1,5 @@
 // Increment CACHE_NAME when making breaking cache changes
-const CACHE_VERSION = 'fp-calendar-v4';
+const CACHE_VERSION = 'fp-calendar-v5';
 const CACHE_NAME = `${CACHE_VERSION}`;
 
 // Base URL of the unified Cloudflare Worker proxy. Keep this in sync with the
