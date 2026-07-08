@@ -42,7 +42,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24.1.0
-          cache: 'yarn'
+
+      - name: Enable Corepack (Yarn 4)
+        run: corepack enable
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: ${{ runner.os }}-yarn-
 
       - name: Install dependencies
         run: yarn install --immutable
@@ -59,11 +68,11 @@ jobs:
           VITE_WORKER_BASE: ${{ secrets.VITE_WORKER_BASE }}
         run: |
           # Custom domain build (root path)
-            npx vite build --base=/
-            # Add .nojekyll
-            touch dist/.nojekyll
-            # Ensure CNAME present
-            cp public/CNAME dist/CNAME
+          yarn vite build --base=/
+          # Add .nojekyll
+          touch dist/.nojekyll
+          # Ensure CNAME present
+          cp public/CNAME dist/CNAME
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
