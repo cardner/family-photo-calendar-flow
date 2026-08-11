@@ -16,8 +16,18 @@ import type { PageObjectResponse, DatabaseObjectResponse } from '@notionhq/clien
 import { notionPageScraper } from '@/services/NotionPageScraper';
 import { RateLimiter, createDebounce } from '@/lib/rateLimiter';
 import { CalendarRefreshUtils } from '@/hooks/useCalendarRefresh';
+import { format, startOfWeek } from 'date-fns';
 
 import { useBackgroundSync } from './useBackgroundSync';
+
+const NOTION_DATE_PROPERTY = 'Date';
+
+export const buildCurrentWeekDateFilter = (now: Date = new Date()) => ({
+  property: NOTION_DATE_PROPERTY,
+  date: {
+    on_or_after: format(startOfWeek(now, { weekStartsOn: 0 }), 'yyyy-MM-dd'),
+  },
+});
 
 // Narrowed property fragment types to avoid any usage
 interface NotionRichTextFragment { plain_text?: string }
@@ -64,7 +74,6 @@ export const useNotionScrapedCalendars = () => {
   const debouncedSyncRef = useState(() => new Map<string, ReturnType<typeof createDebounce>>())[0];
   const RETRY_QUEUE_KEY = 'notion_sync_retry_queue';
   const SETUP_ATTEMPT_KEY = 'notion_setup_last_attempt';
-  const LAST_EDITED_SAFETY_MS = 5 * 60 * 1000;
   
   const { 
     registerBackgroundSync, 
@@ -73,19 +82,6 @@ export const useNotionScrapedCalendars = () => {
     isBackgroundSyncSupported,
     processSyncQueue
   } = useBackgroundSync();
-
-  const buildIncrementalFilter = useCallback((lastSuccessfulSync?: string) => {
-    if (!lastSuccessfulSync) return undefined;
-    const last = new Date(lastSuccessfulSync).getTime();
-    if (Number.isNaN(last)) return undefined;
-    const after = new Date(Math.max(0, last - LAST_EDITED_SAFETY_MS)).toISOString();
-    return {
-      timestamp: 'last_edited_time',
-      last_edited_time: {
-        after
-      }
-    };
-  }, []);
 
   const recordSetupAttempt = useCallback((payload: { url: string; result: 'success' | 'error'; error?: string; code?: string }) => {
     try {
@@ -360,19 +356,10 @@ export const useNotionScrapedCalendars = () => {
         }));
       } else {
         // Direct Notion API fully paginated query
-        const incrementalFilter = buildIncrementalFilter(calendar.lastSuccessfulSync);
-        const pages = await notionAPIClient.queryAllWithOptions(
+        const pages = await notionAPIClient.queryAll(
           calendar.metadata.databaseId!,
           calendar.metadata.token!,
-          {
-            filter: incrementalFilter,
-            startCursor: calendar.lastSyncCursor,
-            onPage: async (res) => {
-              if (res.next_cursor) {
-                await updateCalendar(calendar.id, { lastSyncCursor: res.next_cursor });
-              }
-            }
-          }
+          buildCurrentWeekDateFilter()
         );
         apiEvents = transformPages(pages as PageObjectResponse[]);
       }
@@ -541,6 +528,12 @@ export const useNotionScrapedCalendars = () => {
       console.error('Error syncing calendar:', error);
       setSyncStatus(prev => ({ ...prev, [calendar.id]: 'error' }));
 
+      try {
+        await updateCalendar(calendar.id, { lastSyncCursor: undefined });
+      } catch (cursorError) {
+        console.warn('Failed to clear stale Notion sync cursor', cursorError);
+      }
+
       if (error instanceof NotionApiError) {
         if (error.code === 'cors_blocked' || error.code === 'network' || error.code === 'timeout') {
           enqueueRetry(calendar.id);
@@ -558,7 +551,7 @@ export const useNotionScrapedCalendars = () => {
 
       throw error;
     }
-  }, [buildIncrementalFilter, enqueueRetry, getDatabaseMetadata, loadEvents, toast, transformPages, updateCalendar]);
+  }, [enqueueRetry, getDatabaseMetadata, loadEvents, toast, transformPages, updateCalendar]);
 
   // Public API with rate limiting + per-calendar debounce
   const syncCalendar = useCallback(async (calendar: NotionScrapedCalendar) => {
