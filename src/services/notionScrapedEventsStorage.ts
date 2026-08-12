@@ -159,6 +159,21 @@ class NotionScrapedEventsStorage {
     });
   }
 
+  async replaceAllCalendars(calendars: NotionScrapedCalendar[]): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([CALENDARS_STORE, EVENTS_STORE], 'readwrite');
+      const calendarsStore = transaction.objectStore(CALENDARS_STORE);
+
+      calendarsStore.clear();
+      transaction.objectStore(EVENTS_STORE).clear();
+      calendars.forEach(calendar => calendarsStore.put(calendar));
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  }
+
   // Enhanced event management methods
   async saveEvents(calendarId: string, events: NotionScrapedEvent[]): Promise<void> {
     const db = await this.ensureDB();
