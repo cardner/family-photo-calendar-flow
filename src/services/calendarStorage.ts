@@ -117,6 +117,32 @@ class CalendarStorageService {
     });
   }
 
+  async clearAllCalendars(): Promise<void> {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeName], 'readwrite');
+      transaction.objectStore(this.storeName).clear();
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  }
+
+  async replaceAllCalendars(calendars: CalendarFeed[]): Promise<void> {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+
+      store.clear();
+      calendars.forEach(calendar => store.put(calendar));
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  }
+
   /** Drain items queued by the service worker; used for background iCal sync handoff. */
   async drainBackgroundSyncQueue(): Promise<unknown[]> {
     if (!this.db) await this.init();

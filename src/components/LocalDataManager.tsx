@@ -1,15 +1,17 @@
 
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Upload, Trash2, HardDrive, Info } from 'lucide-react';
+import { Download, Upload, Trash2, HardDrive, Info, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { localDataManager } from '@/utils/localDataManager';
+import { calendarConfigManager } from '@/utils/calendarConfigManager';
 import { InfoBanner, InfoBannerContent, InfoBannerDescription, InfoBannerIcon, InfoBannerTitle } from '@/components/ui/info-banner';
 import { Progress } from '@/components/ui/progress';
 import SettingsSectionCard from '@/components/settings/SettingsSectionCard';
 
 const LocalDataManager = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const configFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleExport = async () => {
@@ -51,6 +53,46 @@ const LocalDataManager = () => {
     // Clear the input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleConfigExport = async () => {
+    try {
+      await calendarConfigManager.exportCalendarConfig();
+      toast({
+        title: "Configuration exported",
+        description: "Your calendar URLs and Notion settings have been downloaded.",
+      });
+    } catch {
+      toast({
+        title: "Configuration export failed",
+        description: "Failed to export your calendar configuration. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleConfigImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await calendarConfigManager.importCalendarConfig(file);
+      toast({
+        title: "Configuration imported",
+        description: "Your calendar URLs and Notion settings have been restored.",
+      });
+      setTimeout(() => window.location.reload(), 1000);
+    } catch (error) {
+      toast({
+        title: "Configuration import failed",
+        description: error instanceof Error ? error.message : "Failed to import configuration.",
+        variant: "destructive"
+      });
+    }
+
+    if (configFileInputRef.current) {
+      configFileInputRef.current.value = '';
     }
   };
 
@@ -136,6 +178,55 @@ const LocalDataManager = () => {
           onChange={handleImport}
           className="hidden"
         />
+
+        <div className="space-y-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+          <div>
+            <h3 className="text-sm font-medium">Calendar configuration</h3>
+            <p className="text-sm text-muted-foreground">
+              Transfer calendar URLs and Notion API settings without exporting event data.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button
+              onClick={handleConfigExport}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export Config
+            </Button>
+            <Button
+              onClick={() => configFileInputRef.current?.click()}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Import Config
+            </Button>
+          </div>
+
+          <input
+            ref={configFileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleConfigImport}
+            className="hidden"
+          />
+
+          <InfoBanner variant="warning">
+            <InfoBannerIcon>
+              <AlertTriangle className="h-4 w-4" />
+            </InfoBannerIcon>
+            <InfoBannerContent>
+              <InfoBannerTitle>Keep configuration files private</InfoBannerTitle>
+              <InfoBannerDescription>
+                Exported files contain calendar URLs and Notion API tokens in plain text.
+                Importing replaces your current calendar configuration.
+              </InfoBannerDescription>
+            </InfoBannerContent>
+          </InfoBanner>
+        </div>
 
         <InfoBanner variant="info">
           <InfoBannerIcon>
